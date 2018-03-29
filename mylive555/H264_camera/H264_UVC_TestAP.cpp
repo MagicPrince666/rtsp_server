@@ -293,7 +293,8 @@ void Init_264camera(void)
 	int format = V4L2_PIX_FMT_H264;
 	
 	int ret;
-	ret = open_device(2);
+	//在这里选择摄像头 0对应video0 1对应video1 依次类推
+	ret = open_device(2);//我的H264摄像头对应的是/dev/video2
 
 	if(ret != -1)
 	{
