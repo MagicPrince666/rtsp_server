@@ -32,13 +32,13 @@ Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 #include <execinfo.h>
 #include <unistd.h> 
 
-#define SOFT_H264 0
+#define SOFT_H264 0   //定义是否使用软件压缩H264
 
-#if SOFT_H264
+#if SOFT_H264   //软件压缩H264
 #include "h264encoder.h"
 #include "video_capture.h"
 #include "h264_camera.h"
-#else
+#else           //UVC输出H264
 #include "H264_UVC_TestAP.h"
 #endif
  
