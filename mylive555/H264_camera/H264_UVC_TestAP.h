@@ -19,7 +19,12 @@
 #include <sys/time.h>
 #include <signal.h>
 
-extern int capturing;
+struct buffer {
+	void *         start;
+	size_t         length;
+};
+
+extern struct buffer *buffers;
 extern FILE *rec_fp1;
 void Init_264camera(void);
 void * Cap_H264_Video (void *arg);

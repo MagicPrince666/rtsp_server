@@ -212,15 +212,16 @@ int main(int argc, char** argv) {
 
 #else
   pthread_t thread[2];
+  Init_264camera();
 
-  if((pthread_create(&thread[0], NULL, Cap_H264_Video, NULL)) != 0)   
-      printf("Cap_H264_Video create fail!\n");
+  //if((pthread_create(&thread[0], NULL, Cap_H264_Video, NULL)) != 0)   
+  //    printf("Cap_H264_Video create fail!\n");
   if((pthread_create(&thread[1], NULL, video_live_Thread, NULL)) != 0)   
       printf("video_live_Thread create fail!\n");
 
-  if(thread[0] !=0) {   
-      pthread_join(thread[0],NULL);
-  }
+  //if(thread[0] !=0) {   
+  //    pthread_join(thread[0],NULL);
+  //}
   if(thread[1] !=0) {   
       pthread_join(thread[1],NULL);
   }

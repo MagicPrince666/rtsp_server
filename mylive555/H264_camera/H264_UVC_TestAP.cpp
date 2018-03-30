@@ -25,10 +25,7 @@ int Dbg_Param = 0x1f;
 
 struct v4l2_buffer buf0;
 void *mem0[32];
-struct buffer {
-	void *         start;
-	size_t         length;
-};
+
 
 static char            dev_name[16];
 struct buffer *         buffers         = NULL;
@@ -341,7 +338,7 @@ void * Cap_H264_Video (void *arg)
 {
 	int ret;
 	struct v4l2_buffer buf;
-	Init_264camera();
+	//Init_264camera();
 
 	struct timeval tv;
     
