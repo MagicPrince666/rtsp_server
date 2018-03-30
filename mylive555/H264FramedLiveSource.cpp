@@ -13,6 +13,7 @@
  
 extern RingBuffer* rbuf;
 bool start = false;
+extern struct vdIn *vd;
 
 H264FramedLiveSource::H264FramedLiveSource( UsageEnvironment& env,  
     char const* fileName, 
@@ -39,7 +40,7 @@ H264FramedLiveSource::~H264FramedLiveSource()
     start = false;
 }
 
-extern struct vdIn *vd;
+
 
 void H264FramedLiveSource::doGetNextFrame()
 {
@@ -100,4 +101,28 @@ void H264FramedLiveSource::doGetNextFrame()
 #endif
     
     return;
+}
+
+void H264FramedLiveSource::doStopGettingFrames()
+{
+	//DBGFUNS("H264FramedLiveSource STOP FRAME 1  tid:%d\n",pthread_self());
+	//启动获取视频数据线程
+	// FetchData::stopCap();
+	// emptyBufferFlag = true;
+	m_can_get_nextframe = false;
+
+	while(!m_is_queue_empty && m_started)
+	{
+		// DBGFUNS("H264FramedLiveSource STOP FRAME 2  tid:%d\n",pthread_self());
+		usleep(10000);
+	}
+
+	//DBGFUNS("H264FramedLiveSource STOP FRAME 2\n");
+}
+
+//网络包尺寸，注意尺寸不能太小，否则会崩溃
+unsigned int H264FramedLiveSource::maxFrameSize() const
+{
+	//printf("H264FramedLiveSource::maxFrameSize \n");
+	return 150000;
 }

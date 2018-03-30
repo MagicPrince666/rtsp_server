@@ -230,7 +230,7 @@ int setupStreamSocket(UsageEnvironment& env,
     return newSocket;
   }
 
-  int reuseFlag = groupsockPriv(env)->reuseFlag;
+  int reuseFlag = 1;//groupsockPriv(env)->reuseFlag;
   reclaimGroupsockPriv(env);
   if (setsockopt(newSocket, SOL_SOCKET, SO_REUSEADDR,
 		 (const char*)&reuseFlag, sizeof reuseFlag) < 0) {

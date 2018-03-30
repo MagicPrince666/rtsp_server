@@ -23,6 +23,8 @@ protected:
         char const* fileName, 
         unsigned preferredFrameSize,
         unsigned playTimePerFrame);
+    virtual void doStopGettingFrames();
+    virtual unsigned int maxFrameSize() const; 
     // called only by createNew()
     ~H264FramedLiveSource();
 
@@ -32,6 +34,9 @@ private:
     int TransportData( unsigned char* to, unsigned maxSize );
 
 protected:
+    bool m_can_get_nextframe;
+    bool m_is_queue_empty;
+    bool m_started;
     FILE *fp;
 };
 

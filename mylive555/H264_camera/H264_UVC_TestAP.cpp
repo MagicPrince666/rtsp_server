@@ -309,7 +309,7 @@ void Init_264camera(void)
 	else
 	{
 		double m_BitRate = 0.0;
-		if(XU_H264_Set_BitRate(vd->fd, 1024*1024) < 0 )//设置码率
+		if(XU_H264_Set_BitRate(vd->fd, 4096*1024) < 0 )//设置码率
 		{
 			printf("XU_H264_Set_BitRate Failed\n");
 		}

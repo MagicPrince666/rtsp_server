@@ -211,20 +211,79 @@ int main(int argc, char** argv) {
   RingBuffer_destroy(rbuf);
 
 #else
-  pthread_t thread[2];
+  
   Init_264camera();
+  // pthread_t thread[2];
+  // //if((pthread_create(&thread[0], NULL, Cap_H264_Video, NULL)) != 0)   
+  // //    printf("Cap_H264_Video create fail!\n");
+  // if((pthread_create(&thread[1], NULL, video_live_Thread, NULL)) != 0)   
+  //     printf("video_live_Thread create fail!\n");
 
-  //if((pthread_create(&thread[0], NULL, Cap_H264_Video, NULL)) != 0)   
-  //    printf("Cap_H264_Video create fail!\n");
-  if((pthread_create(&thread[1], NULL, video_live_Thread, NULL)) != 0)   
-      printf("video_live_Thread create fail!\n");
+  // //if(thread[0] !=0) {   
+  // //    pthread_join(thread[0],NULL);
+  // //}
+  // if(thread[1] !=0) {   
+  //     pthread_join(thread[1],NULL);
+  // }
 
-  //if(thread[0] !=0) {   
-  //    pthread_join(thread[0],NULL);
-  //}
-  if(thread[1] !=0) {   
-      pthread_join(thread[1],NULL);
+  // Begin by setting up our usage environment:
+  TaskScheduler* scheduler = BasicTaskScheduler::createNew();
+  env = BasicUsageEnvironment::createNew(*scheduler);
+
+  UserAuthenticationDatabase* authDB = NULL;
+
+#ifdef ACCESS_CONTROL
+  // To implement client access control to the RTSP server, do the following:
+  authDB = new UserAuthenticationDatabase;
+  authDB->addUserRecord("prince", "67123236"); // replace these with real strings
+  // Repeat the above with each <username>, <password> that you wish to allow
+  // access to the server.
+#endif
+
+  // Create the RTSP server:
+  RTSPServer* rtspServer = RTSPServer::createNew(*env, 8554, authDB);
+  if (rtspServer == NULL) {
+    *env << "Failed to create RTSP server: " << env->getResultMsg() << "\n";
+    exit(1);
   }
+
+  char const* descriptionString
+    = "Session streamed by \"testOnDemandRTSPServer\"";
+
+  // Set up each of the possible streams that can be served by the
+  // RTSP server.  Each such stream is implemented using a
+  // "ServerMediaSession" object, plus one or more
+  // "ServerMediaSubsession" objects for each audio/video substream.
+
+ 
+  // A H.264 video elementary stream:
+  {
+    char const* streamName = "stream";
+
+    ServerMediaSession* sms
+      = ServerMediaSession::createNew(*env, streamName, streamName,
+                      descriptionString);
+    sms->addSubsession(H264LiveVideoServerMediaSubssion
+               ::createNew(*env, NULL, reuseFirstSource));//修改为自己实现的servermedia  H264LiveVideoServerMediaSubssion
+    rtspServer->addServerMediaSession(sms);
+
+    announceStream(rtspServer, sms, streamName, NULL);
+
+  }
+  
+
+
+  // Also, attempt to create a HTTP server for RTSP-over-HTTP tunneling.
+  // Try first with the default HTTP port (80), and then with the alternative HTTP
+  // port numbers (8000 and 8080).
+
+  //if (rtspServer->setUpTunnelingOverHTTP(80) || rtspServer->setUpTunnelingOverHTTP(8000) || rtspServer->setUpTunnelingOverHTTP(8080)) {
+  //  *env << "\n(We use port " << rtspServer->httpServerPortNum() << " for optional RTSP-over-HTTP tunneling.)\n";
+  //} else {
+  //  *env << "\n(RTSP-over-HTTP tunneling is not available.)\n";
+  //}
+
+  env->taskScheduler().doEventLoop(); // does not return
 
 #endif
 
