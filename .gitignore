@@ -1,0 +1,15 @@
+liveMedia/*.o
+UsageEnvironment/*.o
+BasicUsageEnvironment/*.o
+groupsock/*.o
+liveMedia/*.a
+UsageEnvironment/*.a
+BasicUsageEnvironment/*.a
+groupsock/*.a
+proxyServer/*.o
+proxyServer/live555ProxyServer
+mediaServer/*.o
+mediaServer/live555MediaServer
+testProgs/
+mylive555/objs/
+mylive555/live555

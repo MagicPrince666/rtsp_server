@@ -350,18 +350,7 @@ void Init_264camera(void)
 
  
 extern RingBuffer* rbuf;
-//读取数据的回调函数-------------------------
-//AVIOContext使用的回调函数！
-//注意：返回值是读取的字节数
-//手动初始化AVIOContext只需要两个东西：内容来源的buffer，和读取这个Buffer到FFmpeg中的函数
-//回调函数，功能就是：把buf_size字节数据送入buf即可
-//第一个参数(void *opaque)一般情况下可以不用
-int read_buf(void * opaque,uint8_t *buf, int buf_size){
-	uint32_t len = 0;
-	while(RingBuffer_empty(rbuf))usleep(10);
-	len = RingBuffer_read(rbuf,buf,buf_size);
-	return len;
-}
+
 
 void * Cap_H264_Video (void *arg)   
 {
