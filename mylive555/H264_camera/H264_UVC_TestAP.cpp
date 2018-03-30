@@ -9,22 +9,7 @@
  * 修改时间  ：2017-06-28
 
 *****************************************************************************************/
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/file.h>
-#include <string.h>
-#include <pthread.h>
-#include <linux/videodev2.h>
-#include <sys/ioctl.h>
-#include <sys/mman.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <time.h>
-#include <sys/time.h>
-#include <signal.h>
+#include "H264_UVC_TestAP.h"
 
 #include "ringbuffer.h"
 #include "v4l2uvc.h"
@@ -359,8 +344,7 @@ void * Cap_H264_Video (void *arg)
 	Init_264camera();
 
 	struct timeval tv;
-    tv.tv_sec = 0;
-    tv.tv_usec = 10000;
+    
 	fd_set rfds;
     int retval=0;
 
@@ -371,6 +355,10 @@ void * Cap_H264_Video (void *arg)
 			usleep(1000);
 			continue;
 		}
+
+		tv.tv_sec = 0;
+    	tv.tv_usec = 10000;
+		
 		CLEAR (buf);
 			
 		buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;

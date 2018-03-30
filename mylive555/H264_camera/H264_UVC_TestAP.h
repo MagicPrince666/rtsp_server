@@ -2,6 +2,22 @@
 #define __H264_UVC_TESTAP_H_
 
 #include <inttypes.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/file.h>
+#include <string.h>
+#include <pthread.h>
+#include <linux/videodev2.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <time.h>
+#include <sys/time.h>
+#include <signal.h>
 
 extern int capturing;
 extern FILE *rec_fp1;
