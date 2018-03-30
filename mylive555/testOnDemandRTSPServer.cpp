@@ -28,7 +28,6 @@ Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 #include <stdint.h>
 #include <pthread.h>
 #include <signal.h>
-//#include <signum.h>
 #include <execinfo.h>
 #include <unistd.h> 
 
@@ -44,17 +43,18 @@ Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  
 
 UsageEnvironment* env;
+
 RingBuffer* rbuf;
 
 // To make the second and subsequent client for each stream reuse the same
 // input stream as the first client (rather than playing the file from the
 // start for each client), change the following "False" to "True":
-Boolean reuseFirstSource = False;
+//Boolean reuseFirstSource = False;
 
 // To stream *only* MPEG-1 or 2 video "I" frames
 // (e.g., to reduce network bandwidth),
 // change the following "False" to "True":
-Boolean iFramesOnly = False;
+//Boolean iFramesOnly = False;
 
 static void announceStream(RTSPServer* rtspServer, ServerMediaSession* sms,
                char const* streamName, char const* inputFileName); // fwd
@@ -85,7 +85,23 @@ static void _signal_handler(int signum)
       
     free (strings);  
     exit(1);  
-}  
+} 
+
+UsageEnvironment* video_env;
+
+//視頻採集
+void* video_thread_func(void* param)
+{
+	TaskScheduler* scheduler = BasicTaskScheduler::createNew();
+  	video_env = BasicUsageEnvironment::createNew(*scheduler);
+	ServerMediaSession* s = (ServerMediaSession*)param;
+
+   s->addSubsession(H264LiveVideoServerMediaSubssion
+		       ::createNew(*video_env, NULL));
+
+   video_env->taskScheduler().doEventLoop(); // does not return
+   return NULL;
+}
 
 void *video_live_Thread(void *arg)
 {
@@ -141,7 +157,7 @@ void *video_live_Thread(void *arg)
       = ServerMediaSession::createNew(*env, streamName, streamName,
                       descriptionString);
     sms->addSubsession(H264LiveVideoServerMediaSubssion
-               ::createNew(*env, NULL, reuseFirstSource));//修改为自己实现的servermedia  H264LiveVideoServerMediaSubssion
+               ::createNew(*env, NULL));//修改为自己实现的servermedia  H264LiveVideoServerMediaSubssion
     rtspServer->addServerMediaSession(sms);
 
     announceStream(rtspServer, sms, streamName, NULL);
@@ -263,8 +279,18 @@ int main(int argc, char** argv) {
     ServerMediaSession* sms
       = ServerMediaSession::createNew(*env, streamName, streamName,
                       descriptionString);
+    //sms->addSubsession(H264LiveVideoServerMediaSubssion
+    //           ::createNew(*env, NULL));//修改为自己实现的servermedia  H264LiveVideoServerMediaSubssion
+    
+    //TaskScheduler* scheduler = BasicTaskScheduler::createNew();
+  	//video_env = BasicUsageEnvironment::createNew(*scheduler);
+	  //ServerMediaSession* s = (ServerMediaSession*)param;
+
     sms->addSubsession(H264LiveVideoServerMediaSubssion
-               ::createNew(*env, NULL, reuseFirstSource));//修改为自己实现的servermedia  H264LiveVideoServerMediaSubssion
+		       ::createNew(*env, NULL));
+
+    //env->taskScheduler().doEventLoop(); // does not return
+    
     rtspServer->addServerMediaSession(sms);
 
     announceStream(rtspServer, sms, streamName, NULL);
@@ -277,11 +303,11 @@ int main(int argc, char** argv) {
   // Try first with the default HTTP port (80), and then with the alternative HTTP
   // port numbers (8000 and 8080).
 
-  //if (rtspServer->setUpTunnelingOverHTTP(80) || rtspServer->setUpTunnelingOverHTTP(8000) || rtspServer->setUpTunnelingOverHTTP(8080)) {
-  //  *env << "\n(We use port " << rtspServer->httpServerPortNum() << " for optional RTSP-over-HTTP tunneling.)\n";
-  //} else {
-  //  *env << "\n(RTSP-over-HTTP tunneling is not available.)\n";
-  //}
+  if (rtspServer->setUpTunnelingOverHTTP(80) || rtspServer->setUpTunnelingOverHTTP(8000) || rtspServer->setUpTunnelingOverHTTP(8080)) {
+   *env << "\n(We use port " << rtspServer->httpServerPortNum() << " for optional RTSP-over-HTTP tunneling.)\n";
+  } else {
+   *env << "\n(RTSP-over-HTTP tunneling is not available.)\n";
+  }
 
   env->taskScheduler().doEventLoop(); // does not return
 

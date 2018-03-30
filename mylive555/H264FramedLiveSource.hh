@@ -13,20 +13,25 @@
 class H264FramedLiveSource : public FramedSource
 {
 public:
-    static H264FramedLiveSource* createNew(UsageEnvironment& env,
-        char const* fileName,
-        unsigned preferredFrameSize = 0,
-        unsigned playTimePerFrame = 0); 
+    static H264FramedLiveSource* createNew(UsageEnvironment& env)
+    {
+      return new H264FramedLiveSource(env);
+    }
+
+    H264FramedLiveSource(UsageEnvironment& env);
+    virtual ~H264FramedLiveSource();
+
+    static void updateTime(struct timeval& p);
+    void doUpdateStart();
+    static void updateDataNotify(void* d){((H264FramedLiveSource*)d)->doUpdateDataNotify();};
+    void doUpdateDataNotify();
 
 protected:
-    H264FramedLiveSource(UsageEnvironment& env,
-        char const* fileName, 
-        unsigned preferredFrameSize,
-        unsigned playTimePerFrame);
+    
     virtual void doStopGettingFrames();
     virtual unsigned int maxFrameSize() const; 
     // called only by createNew()
-    ~H264FramedLiveSource();
+    
 
 private:
     // redefined virtual functions:
@@ -34,10 +39,16 @@ private:
     int TransportData( unsigned char* to, unsigned maxSize );
 
 protected:
+    void *m_pToken; 
+    static struct timeval sPresentationTime;
+    static struct timeval sdiff;
+
+    static bool sbTimeUpdate;
+    EventTriggerId m_eventTriggerId;
+    bool bVideoFirst;
     bool m_can_get_nextframe;
     bool m_is_queue_empty;
     bool m_started;
-    FILE *fp;
 };
 
 #endif

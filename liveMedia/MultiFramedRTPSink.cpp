@@ -57,7 +57,11 @@ MultiFramedRTPSink::MultiFramedRTPSink(UsageEnvironment& env,
 }
 
 MultiFramedRTPSink::~MultiFramedRTPSink() {
-  delete fOutBuf;
+  if(fOutBuf)
+  {
+    delete fOutBuf;
+    fOutBuf = NULL;
+  }
 }
 
 void MultiFramedRTPSink

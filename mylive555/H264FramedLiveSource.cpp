@@ -12,35 +12,81 @@
 #include "h264_xu_ctrls.h"
  
 extern RingBuffer* rbuf;
-bool start = false;
+
 extern struct vdIn *vd;
 
-H264FramedLiveSource::H264FramedLiveSource( UsageEnvironment& env,  
-    char const* fileName, 
-    unsigned preferredFrameSize, 
-    unsigned playTimePerFrame )
-    : FramedSource(env)
+bool emptyBufferFlag = true;
+
+H264FramedLiveSource::H264FramedLiveSource( UsageEnvironment& env)
+    : FramedSource(env),m_pToken(0)
 {
-    start = true;
+    m_can_get_nextframe = true;
+	m_is_queue_empty =false;
+	bVideoFirst = true;
+	m_started = false;
+    gettimeofday(&sPresentationTime, NULL);
+
+	//启动获取视频数据线程
+	emptyBufferFlag = true;
+	m_eventTriggerId = envir().taskScheduler().createEventTrigger(H264FramedLiveSource::updateDataNotify);
 }
 
-H264FramedLiveSource* H264FramedLiveSource::createNew( UsageEnvironment& env,
-                                           char const* fileName, 
-                                           unsigned preferredFrameSize /*= 0*/, 
-                                           unsigned playTimePerFrame /*= 0*/ )
-{ 
-    H264FramedLiveSource* newSource = new H264FramedLiveSource(env, fileName, preferredFrameSize, playTimePerFrame);
- 
-    return newSource;
-}
 
 H264FramedLiveSource::~H264FramedLiveSource()
 {
-    printf("close stream\n");
-    start = false;
+    //printf("close stream\n");
+    //start = false;
+    printf("H264FramedLiveSource::~H264FramedLiveSource() \n");
+	
+	envir().taskScheduler().deleteEventTrigger(m_eventTriggerId);
+}
+
+int timeval_substract(struct timeval* result, struct timeval*t2, struct timeval* t1)
+{
+	long int diff = (t2->tv_usec + 1000000 * t2->tv_sec) - (t1->tv_usec + 1000000 * t1->tv_sec);
+
+	result->tv_sec = diff/1000000;
+	result->tv_usec = diff % 1000000;
+
+	return diff<0;
 }
 
 
+void  timeval_add(struct timeval* result, struct timeval*t2, struct timeval* t1)
+{
+	long int total = (t2->tv_usec + 1000000 * t2->tv_sec) + (t1->tv_usec + 1000000 * t1->tv_sec);
+
+	result->tv_sec = total/1000000;
+	result->tv_usec = total % 1000000;
+}
+
+struct timeval H264FramedLiveSource::sPresentationTime;
+struct timeval H264FramedLiveSource::sdiff;
+bool H264FramedLiveSource::sbTimeUpdate =false;
+void H264FramedLiveSource::updateTime(struct timeval& p)
+{
+	struct timeval now;
+	gettimeofday(&now, NULL);
+    sPresentationTime.tv_sec = p.tv_sec;
+	sPresentationTime.tv_usec = p.tv_usec;
+
+	int i = timeval_substract(&sdiff, &now, &sPresentationTime);
+	printf("DIFF:%d \n",sdiff);
+
+    sbTimeUpdate = true;
+}
+
+void H264FramedLiveSource::doUpdateStart()
+{
+	envir().taskScheduler().triggerEvent(m_eventTriggerId, this);
+}
+
+
+void H264FramedLiveSource::doUpdateDataNotify()
+{
+	// nextTask() = envir().taskScheduler().scheduleDelayedTask(0,(TaskFunc*)FramedSource::afterGetting,this);  
+	afterGetting(this);
+}
 
 void H264FramedLiveSource::doGetNextFrame()
 {
@@ -52,7 +98,10 @@ void H264FramedLiveSource::doGetNextFrame()
     nextTask() = envir().taskScheduler().scheduleDelayedTask( 0,
         (TaskFunc*)FramedSource::afterGetting, this);//表示延迟0秒后再执行 afterGetting 函数
 #else
-
+    if(!m_started)
+	{
+		m_started =true;
+	}
     int ret;
 	struct v4l2_buffer buf;
 	//Init_264camera();
@@ -98,26 +147,35 @@ void H264FramedLiveSource::doGetNextFrame()
         printf("Unable to requeue buffer");
         exit(1);
     }
+
+    gettimeofday(&fPresentationTime, NULL);
+	afterGetting(this);
+
+	if(!m_can_get_nextframe)
+	{
+		envir().taskScheduler().unscheduleDelayedTask(nextTask());
+		// DBGFUNS("Tiam335xH264Source m_is_queue_empty=true tid:%d\n",pthread_self());
+		
+		m_is_queue_empty=true;
+	}
 #endif
     
-    return;
+    //return;
 }
 
 void H264FramedLiveSource::doStopGettingFrames()
 {
-	//DBGFUNS("H264FramedLiveSource STOP FRAME 1  tid:%d\n",pthread_self());
-	//启动获取视频数据线程
-	// FetchData::stopCap();
-	// emptyBufferFlag = true;
+	printf("H264FramedLiveSource STOP FRAME 1  \n");
+
 	m_can_get_nextframe = false;
 
 	while(!m_is_queue_empty && m_started)
 	{
-		// DBGFUNS("H264FramedLiveSource STOP FRAME 2  tid:%d\n",pthread_self());
+		// DBGFUNS("Tiam335xH264Source STOP FRAME 2  tid:%d\n",pthread_self());
 		usleep(10000);
 	}
 
-	//DBGFUNS("H264FramedLiveSource STOP FRAME 2\n");
+	printf("H264FramedLiveSource STOP FRAME 2\n");
 }
 
 //网络包尺寸，注意尺寸不能太小，否则会崩溃

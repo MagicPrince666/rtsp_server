@@ -18,7 +18,7 @@ INC		+= -I$(usageenviroment)/include -I$(basicusage)/include -I$(livemedia)/incl
 
 LDFLAGS += -L./lib $(LIBSDIR) -lx264 -lliveMedia -lBasicUsageEnvironment -lgroupsock -lUsageEnvironment
 LDFLAGS += -lpthread -ldl -lm
-CFLAGS	= -g -Wall
+CFLAGS	= -O3 -g -Wall
 
 OBJPATH	= ./objs
 

@@ -42,7 +42,7 @@ extern FILE *h264_fp;
 extern uint8_t *h264_buf;
 
 extern RingBuffer* rbuf;//from ringbuffer.cpp
-extern bool start;		//from H164FramedLiveSource.cpp
+//extern bool start;		//from H164FramedLiveSource.cpp
 
 
 int record_h264()
@@ -117,11 +117,11 @@ void
 
 	while(1)
 	{
-		if(start == false)
-		{
-			usleep(10);
-			continue;
-		}
+		// if(start == false)
+		// {
+		// 	usleep(10);
+		// 	continue;
+		// }
 		usleep(DelayTime);
 
 		gettimeofday(&now, NULL);
@@ -209,11 +209,11 @@ void
 
 	while(1)
 	{	
-		if(start == false)
-		{
-			usleep(10);
-			continue;
-		}
+		// if(start == false)
+		// {
+		// 	usleep(10);
+		// 	continue;
+		// }
 
 		if((flag[1]==0 && flag[0]==0) || (flag[i]==-1)) continue;
 

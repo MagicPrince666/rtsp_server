@@ -70,7 +70,7 @@ void H264or5VideoStreamDiscreteFramer
   // Once again, to be clear: The NAL units that you feed to a "H264or5VideoStreamDiscreteFramer"
   // MUST NOT include start codes.
   if (frameSize >= 4 && fTo[0] == 0 && fTo[1] == 0 && ((fTo[2] == 0 && fTo[3] == 1) || fTo[2] == 1)) {
-    envir() << "H264or5VideoStreamDiscreteFramer error: MPEG 'start code' seen in the input\n";
+    //envir() << "H264or5VideoStreamDiscreteFramer error: MPEG 'start code' seen in the input\n";
   } else if (isVPS(nal_unit_type)) { // Video parameter set (VPS)
     saveCopyOfVPS(fTo, frameSize);
   } else if (isSPS(nal_unit_type)) { // Sequence parameter set (SPS)

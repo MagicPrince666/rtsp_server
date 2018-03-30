@@ -347,11 +347,6 @@ void * Cap_H264_Video (void *arg)
 
 	while(1)
 	{
-		if(start == false)
-		{
-			usleep(1000);
-			continue;
-		}
 
 		tv.tv_sec = 0;
     	tv.tv_usec = 1000000;
