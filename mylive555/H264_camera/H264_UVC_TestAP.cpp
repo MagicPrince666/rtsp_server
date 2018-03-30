@@ -357,7 +357,7 @@ void * Cap_H264_Video (void *arg)
 		}
 
 		tv.tv_sec = 0;
-    	tv.tv_usec = 10000;
+    	tv.tv_usec = 1000000;
 		
 		CLEAR (buf);
 			
@@ -367,7 +367,7 @@ void * Cap_H264_Video (void *arg)
 		FD_ZERO(&rfds);
 		FD_SET(vd->fd, &rfds);
 		
-		retval=select(vd->fd + 1, &rfds, NULL, NULL, &tv);
+		retval = select(vd->fd + 1, &rfds, NULL, NULL, &tv);
 		if(retval<0)
 		{  
 			perror("select error\n");  
