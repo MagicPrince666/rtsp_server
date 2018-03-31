@@ -1,9 +1,3 @@
-/*
- * Filename:  H264FramedLiveSource.cpp
- * Auther:  mlj
- * Create date: 2013/ 1/22
- */
-
 #include "H264FramedLiveSource.hh"
 
 
@@ -39,14 +33,14 @@ H264FramedLiveSource::H264FramedLiveSource( UsageEnvironment& env)
 	printf("Soft wave H264FramedLiveSource::H264FramedLiveSource \n");
 	Soft_FetchData::startCap();
 	emptyBufferFlag = true;
-	Soft_FetchData::setSource(this);
+	//Soft_FetchData::setSource(this);
 
 #else
 
 	printf("Hart wave H264FramedLiveSource::H264FramedLiveSource \n");
 	FetchData::startCap();
 	emptyBufferFlag = true;
-	FetchData::setSource(this);
+	//FetchData::setSource(this);
 
 #endif
 

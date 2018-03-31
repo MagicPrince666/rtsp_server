@@ -292,7 +292,7 @@ void v4l2_init(struct camera *cam) {
 	init_camera(cam);
 	start_capturing(cam);
 	init_encoder(cam);
-	init_file();
+	//init_file();
 }
 
 void v4l2_close(struct camera *cam) {
@@ -300,6 +300,6 @@ void v4l2_close(struct camera *cam) {
 	uninit_camera(cam);
 	close_camera(cam);
 	free(cam);
-	close_file();
+	//close_file();
 	close_encoder();
 }

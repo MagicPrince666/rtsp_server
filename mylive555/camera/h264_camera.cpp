@@ -26,8 +26,6 @@
 
 static bool s_quit = true; 
 
-#define Cbuf 1
-
 struct cam_data Buff[2];
 
 pthread_t thread[3];
@@ -43,7 +41,6 @@ extern FILE *h264_fp;
 extern uint8_t *h264_buf;
 
 extern RingBuffer* rbuf;//from ringbuffer.cpp
-//extern bool start;		//from H164FramedLiveSource.cpp
 
 
 int record_h264()
@@ -122,6 +119,7 @@ void
 			usleep(1000);
 			continue;
 		}
+
 		usleep(DelayTime);
 
 		gettimeofday(&now, NULL);
@@ -256,29 +254,17 @@ const int QUEUE_SIMPLE_UNIT_SIZE = 100000;
 
 void Soft_init()
 {
-	cam = (struct camera *) malloc(sizeof(struct camera));
-	if (!cam) {
-		printf("malloc camera failure!\n");
-		exit(1);
-	}
-
-	cam->device_name = (char *)DEVICE;
-	cam->buffers = NULL;
-	cam->width = SET_WIDTH;
-	cam->height = SET_HEIGHT;
-	cam->fps = 25;
-
-	framelength=sizeof(unsigned char)*cam->width * cam->height * 2;
-
   	v4l2_init(cam);
 	//init(Buff);
+	printf("Camera init\n");
 }
 
 int Soft_uinit()
 {	
 	v4l2_close(cam);
+	printf("Camera uinit\n");
 	return 0;
-};
+}
 
 void* Soft_FetchData::s_source = NULL;
 
@@ -290,11 +276,12 @@ int Soft_FetchData::getData(void* fTo, unsigned fMaxSize, unsigned& fFrameSize, 
 	
 	if(!s_b_running)
 	{
-		printf("FetchData::getData s_b_running = false  \n");
+		printf("Soft_FetchData::getData s_b_running = false  \n");
 		return 0;
 	}
 
 #if SOFT_H264
+	while(RingBuffer_empty(rbuf)) usleep(1000);
 	unsigned len = RingBuffer_read(rbuf,(uint8_t*)fTo,fMaxSize);
 #else
 	unsigned len = 0;
@@ -331,14 +318,16 @@ void Soft_FetchData::startCap()
 	}
 	s_quit = false;
     Soft_init();
-	printf("pthread_create ok \n");  
+	printf("FetchData startCap\n");   
 }
 
 void Soft_FetchData::stopCap()
 {
 	s_b_running = false;
-	printf("FetchData stopCap\n");  
+	
     s_quit = true;
 
     Soft_uinit();
+
+	printf("FetchData stopCap\n");  
 }

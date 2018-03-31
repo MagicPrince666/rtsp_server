@@ -1,9 +1,3 @@
-/*
- * Filename: H264LiveVideoServerMediaSubssion.cpp
- * Auther: chenbin
- * Create date: 2012/11/29
- */
-
 #include "H264LiveVideoServerMediaSubssion.hh"
 #include "H264FramedLiveSource.hh"
 #include "H264VideoRTPSink.hh"

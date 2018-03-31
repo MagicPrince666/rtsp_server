@@ -1,11 +1,6 @@
-/*
- * Filename: H264LiveVideoServerMediaSubssion.hh
- * Auther: mlj 
- * Create date: 2013/ 1/22
- */
 #ifndef _H264_LIVE_VIDEO_SERVER_MEDIA_SUBSESSION_HH
 #define _H264_LIVE_VIDEO_SERVER_MEDIA_SUBSESSION_HH
-//#include "H264VideoFileServerMediaSubsession.hh"
+
 #include "OnDemandServerMediaSubsession.hh"
 
 class H264LiveVideoServerMediaSubssion: public OnDemandServerMediaSubsession {

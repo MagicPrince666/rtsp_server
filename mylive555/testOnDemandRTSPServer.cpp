@@ -1,28 +1,7 @@
-/**********
-This library is free software; you can redistribute it and/or modify it under
-the terms of the GNU Lesser General Public License as published by the
-Free Software Foundation; either version 2.1 of the License, or (at your
-option) any later version. (See <http://www.gnu.org/copyleft/lesser.html>.)
-
-This library is distributed in the hope that it will be useful, but WITHOUT
-ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for
-more details.
-
-You should have received a copy of the GNU Lesser General Public License
-along with this library; if not, write to the Free Software Foundation, Inc.,
-Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
-**********/
-// Copyright (c) 1996-2012, Live Networks, Inc.  All rights reserved
-// A test program that demonstrates how to stream - via unicast RTP
-// - various kinds of file on demand, using a built-in RTSP server.
-// main program
-
 #include "H264LiveVideoServerMediaSubssion.hh"
 #include "H264FramedLiveSource.hh"
 #include "liveMedia.hh"
 #include "BasicUsageEnvironment.hh"
-
 
 
 #include <stdint.h>
@@ -30,7 +9,6 @@ Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 #include <signal.h>
 #include <execinfo.h>
 #include <unistd.h> 
-
 
 
 #if SOFT_H264   //软件压缩H264
@@ -188,7 +166,22 @@ int main(int argc, char** argv) {
 
   rbuf = RingBuffer_create(DEFAULT_BUF_SIZE);
 
-  init(Buff);
+  cam = (struct camera *) malloc(sizeof(struct camera));
+	if (!cam) {
+		printf("malloc camera failure!\n");
+		exit(1);
+	}
+	cam->device_name = (char *)DEVICE;
+	cam->buffers = NULL;
+	cam->width = SET_WIDTH;
+	cam->height = SET_HEIGHT;
+	cam->fps = 25;
+
+	framelength=sizeof(unsigned char)*cam->width * cam->height * 2;
+
+	//v4l2_init(cam);
+
+	init(Buff);
 
   if((pthread_create(&thread[3], NULL, video_live_Thread, NULL)) != 0)   
     printf("video_live_Thread create fail!\n");
@@ -204,20 +197,6 @@ int main(int argc, char** argv) {
   RingBuffer_destroy(rbuf);
 
 #else
-  
-  //Init_264camera();
-  // pthread_t thread[2];
-  // //if((pthread_create(&thread[0], NULL, Cap_H264_Video, NULL)) != 0)   
-  // //    printf("Cap_H264_Video create fail!\n");
-  // if((pthread_create(&thread[1], NULL, video_live_Thread, NULL)) != 0)   
-  //     printf("video_live_Thread create fail!\n");
-
-  // //if(thread[0] !=0) {   
-  // //    pthread_join(thread[0],NULL);
-  // //}
-  // if(thread[1] !=0) {   
-  //     pthread_join(thread[1],NULL);
-  // }
 
   // Begin by setting up our usage environment:
   TaskScheduler* scheduler = BasicTaskScheduler::createNew();

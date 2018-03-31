@@ -1,15 +1,9 @@
-/*
- * Filename: H264FramedLiveSource.hh
- * Auther: chenbin
- * Create date: 2013/ 1/22
- */
-
 #ifndef _H264FRAMEDLIVESOURCE_HH
 #define _H264FRAMEDLIVESOURCE_HH
 
 #include <FramedSource.hh>
 
-#define SOFT_H264 0  //定义是否使用软件压缩H264
+#define SOFT_H264 1  //定义是否使用软件压缩H264
 
 class H264FramedLiveSource : public FramedSource
 {
