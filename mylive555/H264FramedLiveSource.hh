@@ -27,19 +27,12 @@ public:
     void doUpdateDataNotify();
 
 protected:
-    
+    virtual void doGetNextFrame();
     virtual void doStopGettingFrames();
     virtual unsigned int maxFrameSize() const; 
-    // called only by createNew()
-    
 
-private:
-    // redefined virtual functions:
-    virtual void doGetNextFrame();
-    int TransportData( unsigned char* to, unsigned maxSize );
-
-protected:
     void GetFrameData();
+    
     void *m_pToken; 
     static struct timeval sPresentationTime;
     static struct timeval sdiff;

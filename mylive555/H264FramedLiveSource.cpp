@@ -5,15 +5,12 @@
  */
 
 #include "H264FramedLiveSource.hh"
-#include "h264_camera.h"
-#include "ringbuffer.h"
 #include "H264_UVC_TestAP.h"
-#include "v4l2uvc.h"
-#include "h264_xu_ctrls.h"
- 
-extern RingBuffer* rbuf;
 
-extern struct vdIn *vd;
+ 
+//extern RingBuffer* rbuf;
+
+//extern struct vdIn *vd;
 
 bool emptyBufferFlag = true;
 
@@ -24,6 +21,8 @@ H264FramedLiveSource::H264FramedLiveSource( UsageEnvironment& env)
 	m_is_queue_empty =false;
 	bVideoFirst = true;
 	m_started = false;
+
+    printf("H264FramedLiveSource::H264FramedLiveSource \n");
     gettimeofday(&sPresentationTime, NULL);
 
 	//启动获取视频数据线程
