@@ -371,8 +371,8 @@ void * Cap_H264_Video (void *arg)
 				exit(1);
 			}	  
 			
-			//fwrite(buffers[buf.index].start, buf.bytesused, 1, rec_fp1);
-			RingBuffer_write(rbuf,(uint8_t*)(buffers[buf.index].start),buf.bytesused);
+			fwrite(buffers[buf.index].start, buf.bytesused, 1, rec_fp1);
+			//RingBuffer_write(rbuf,(uint8_t*)(buffers[buf.index].start),buf.bytesused);
 
 			ret = ioctl(vd->fd, VIDIOC_QBUF, &buf);
 			

@@ -168,39 +168,6 @@ void
 }
 
 
-//读取数据的回调函数-------------------------
-//AVIOContext使用的回调函数！
-//注意：返回值是读取的字节数
-//手动初始化AVIOContext只需要两个东西：内容来源的buffer，和读取这个Buffer到FFmpeg中的函数
-//回调函数，功能就是：把buf_size字节数据送入buf即可
-//第一个参数(void *opaque)一般情况下可以不用
-int read_buffer(void * opaque,uint8_t *buf, int buf_size){
-	uint32_t len;
-
-#if Cbuf
-
-	while(RingBuffer_empty(rbuf))usleep(10);
-	len = RingBuffer_read(rbuf,buf,buf_size);
-
-#else
-	struct list_head *pos;
-	struct node *tmp;
-
-	list_for_each(pos, head)
-	{
-		tmp = list_entry(pos, struct node, list);
-		if(tmp->size != 0)
-		{
-			len = tmp->size;
-			memcpy(buf,tmp->buff,len);
-			break;
-		}
-	}
-#endif
-
-	return len;
-}
-
 void
 *video_Encode_Thread(void *arg)
 {
@@ -236,23 +203,13 @@ void
 			//写h264文件
 			//fwrite(h264_buf, h264_length, 1, h264_fp);
 	
-#if Cbuf
+#if SOFT_H264
 
 			RingBuffer_write(rbuf,h264_buf,h264_length);
 #else			
-			list_for_each(pos, head)
-			{
-				tmp = list_entry(pos, struct node, list);
-				if(tmp->size == 0)
-				{
-					memcpy(tmp->buff,h264_buf,h264_length);
-					tmp->size = h264_length;
-					break;
-				}else if(tmp->size < 3)
-				{}
-			}
+			fwrite(h264_buf, h264_length, 1, h264_fp);
 #endif
-			//printf("buf front:%d rear :%d\n",q.front,q.rear);
+
 		}
 
 		Buff[i].rpos+=framelength;
@@ -336,9 +293,12 @@ int Soft_FetchData::getData(void* fTo, unsigned fMaxSize, unsigned& fFrameSize, 
 		printf("FetchData::getData s_b_running = false  \n");
 		return 0;
 	}
-	
-	unsigned len = RingBuffer_read(rbuf,(uint8_t*)fTo,fMaxSize);
 
+#if SOFT_H264
+	unsigned len = RingBuffer_read(rbuf,(uint8_t*)fTo,fMaxSize);
+#else
+	unsigned len = 0;
+#endif
 	//拷贝视频到live555缓存
 	if(len < fMaxSize)
 	{            

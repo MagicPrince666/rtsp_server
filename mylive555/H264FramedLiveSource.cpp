@@ -30,18 +30,24 @@ H264FramedLiveSource::H264FramedLiveSource( UsageEnvironment& env)
 	bVideoFirst = true;
 	m_started = false;
 
-    printf("H264FramedLiveSource::H264FramedLiveSource \n");
+    //printf("H264FramedLiveSource::H264FramedLiveSource \n");
     gettimeofday(&sPresentationTime, NULL);
 
 	//启动获取视频数据线程
 #if SOFT_H264
+
+	printf("Soft wave H264FramedLiveSource::H264FramedLiveSource \n");
 	Soft_FetchData::startCap();
 	emptyBufferFlag = true;
 	Soft_FetchData::setSource(this);
+
 #else
+
+	printf("Hart wave H264FramedLiveSource::H264FramedLiveSource \n");
 	FetchData::startCap();
 	emptyBufferFlag = true;
 	FetchData::setSource(this);
+
 #endif
 
 	m_eventTriggerId = envir().taskScheduler().createEventTrigger(H264FramedLiveSource::updateDataNotify);
@@ -114,7 +120,7 @@ void H264FramedLiveSource::GetFrameData()
 	
 #if SOFT_H264
 	//fFrameSize = RingBuffer_read(rbuf,fTo,fMaxSize);
-	Soft_FetchData::getData(fTo,fMaxSize, fFrameSize, fNumTruncatedBytes);
+	unsigned len = Soft_FetchData::getData(fTo,fMaxSize, fFrameSize, fNumTruncatedBytes);
 #else
 	unsigned len = FetchData::getData(fTo,fMaxSize, fFrameSize, fNumTruncatedBytes);
 #endif
