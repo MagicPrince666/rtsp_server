@@ -34,7 +34,7 @@ void errno_exit(const char *s) {
 	exit(EXIT_FAILURE);
 }
 
-int xioctl(int fd, int request, void *arg) {
+static int xioctl(int fd, int request, void *arg) {
 	int r = 0;
 	do {
 		r = ioctl(fd, request, arg);

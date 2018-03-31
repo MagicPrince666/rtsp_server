@@ -5,11 +5,19 @@
  */
 
 #include "H264FramedLiveSource.hh"
+
+
+#if SOFT_H264
+
+#include "h264_camera.h"
+#include "ringbuffer.h"
+extern RingBuffer* rbuf;
+
+#else
+
 #include "H264_UVC_TestAP.h"
 
- 
-//extern RingBuffer* rbuf;
-
+#endif
 //extern struct vdIn *vd;
 
 bool emptyBufferFlag = true;
@@ -26,9 +34,16 @@ H264FramedLiveSource::H264FramedLiveSource( UsageEnvironment& env)
     gettimeofday(&sPresentationTime, NULL);
 
 	//启动获取视频数据线程
+#if SOFT_H264
+	Soft_FetchData::startCap();
+	emptyBufferFlag = true;
+	Soft_FetchData::setSource(this);
+#else
 	FetchData::startCap();
 	emptyBufferFlag = true;
 	FetchData::setSource(this);
+#endif
+
 	m_eventTriggerId = envir().taskScheduler().createEventTrigger(H264FramedLiveSource::updateDataNotify);
 }
 
@@ -37,7 +52,13 @@ H264FramedLiveSource::~H264FramedLiveSource()
 {
     //printf("close stream\n");
     printf("H264FramedLiveSource::~H264FramedLiveSource() \n");
+
+#if SOFT_H264
+	Soft_FetchData::stopCap();
+#else
 	FetchData::stopCap();
+#endif
+
 	envir().taskScheduler().deleteEventTrigger(m_eventTriggerId);
 }
 
@@ -90,8 +111,14 @@ void H264FramedLiveSource::doUpdateDataNotify()
 
 void H264FramedLiveSource::GetFrameData()
 {
-	unsigned len = FetchData::getData(fTo,fMaxSize, fFrameSize, fNumTruncatedBytes);
 	
+#if SOFT_H264
+	//fFrameSize = RingBuffer_read(rbuf,fTo,fMaxSize);
+	Soft_FetchData::getData(fTo,fMaxSize, fFrameSize, fNumTruncatedBytes);
+#else
+	unsigned len = FetchData::getData(fTo,fMaxSize, fFrameSize, fNumTruncatedBytes);
+#endif
+
 	gettimeofday(&fPresentationTime, NULL);
 	afterGetting(this);
 

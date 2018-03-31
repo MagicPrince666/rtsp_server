@@ -22,7 +22,7 @@ Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 #include "H264FramedLiveSource.hh"
 #include "liveMedia.hh"
 #include "BasicUsageEnvironment.hh"
-#include "ringbuffer.h"
+
 
 
 #include <stdint.h>
@@ -31,12 +31,17 @@ Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 #include <execinfo.h>
 #include <unistd.h> 
 
-#define SOFT_H264 0   //定义是否使用软件压缩H264
+
 
 #if SOFT_H264   //软件压缩H264
+
 #include "h264encoder.h"
 #include "video_capture.h"
 #include "h264_camera.h"
+#include "ringbuffer.h"
+
+RingBuffer* rbuf;
+
 #else           //UVC输出H264
 #include "H264_UVC_TestAP.h"
 #endif
@@ -44,7 +49,7 @@ Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
 UsageEnvironment* env;
 
-RingBuffer* rbuf;
+
 
 // To make the second and subsequent client for each stream reuse the same
 // input stream as the first client (rather than playing the file from the
@@ -139,19 +144,6 @@ void *video_live_Thread(void *arg)
   {
     char const* streamName = "stream";
 
-#if FILE_STREAM
-    char const* inputFileName = "bigbuckbunny_480x272.h264";
-
-    ServerMediaSession* sms
-      = ServerMediaSession::createNew(*env, streamName, streamName,
-                      descriptionString);
-    sms->addSubsession(H264LiveVideoServerMediaSubssion
-               ::createNew(*env, inputFileName, reuseFirstSource));//修改为自己实现的servermedia  H264LiveVideoServerMediaSubssion
-    rtspServer->addServerMediaSession(sms);
-
-    announceStream(rtspServer, sms, streamName, inputFileName);
-
-#else
 
     ServerMediaSession* sms
       = ServerMediaSession::createNew(*env, streamName, streamName,
@@ -161,7 +153,6 @@ void *video_live_Thread(void *arg)
     rtspServer->addServerMediaSession(sms);
 
     announceStream(rtspServer, sms, streamName, NULL);
-#endif
 
   }
   
@@ -171,11 +162,11 @@ void *video_live_Thread(void *arg)
   // Try first with the default HTTP port (80), and then with the alternative HTTP
   // port numbers (8000 and 8080).
 
-  //if (rtspServer->setUpTunnelingOverHTTP(80) || rtspServer->setUpTunnelingOverHTTP(8000) || rtspServer->setUpTunnelingOverHTTP(8080)) {
-  //  *env << "\n(We use port " << rtspServer->httpServerPortNum() << " for optional RTSP-over-HTTP tunneling.)\n";
-  //} else {
-  //  *env << "\n(RTSP-over-HTTP tunneling is not available.)\n";
-  //}
+  if (rtspServer->setUpTunnelingOverHTTP(80) || rtspServer->setUpTunnelingOverHTTP(8000) || rtspServer->setUpTunnelingOverHTTP(8080)) {
+   *env << "\n(We use port " << rtspServer->httpServerPortNum() << " for optional RTSP-over-HTTP tunneling.)\n";
+  } else {
+   *env << "\n(RTSP-over-HTTP tunneling is not available.)\n";
+  }
 
   env->taskScheduler().doEventLoop(); // does not return
 
@@ -191,39 +182,25 @@ int main(int argc, char** argv) {
   signal(SIGFPE, _signal_handler);     // SIGFPE，数学相关的异常，如被0除，浮点溢出，等等
   signal(SIGABRT, _signal_handler);    // SIGABRT，由调用abort函数产生，进程非正常退出
 
-  rbuf = RingBuffer_create(DEFAULT_BUF_SIZE);
+  
 
 #if SOFT_H264
 
-  
+  rbuf = RingBuffer_create(DEFAULT_BUF_SIZE);
+
+  init(Buff);
+
   if((pthread_create(&thread[3], NULL, video_live_Thread, NULL)) != 0)   
     printf("video_live_Thread create fail!\n");
 
   thread_create();
-
-  cam = (struct camera *) malloc(sizeof(struct camera));
-	if (!cam) {
-		printf("malloc camera failure!\n");
-		exit(1);
-	}
-
-	cam->device_name = (char *)DEVICE;
-	cam->buffers = NULL;
-	cam->width = SET_WIDTH;
-	cam->height = SET_HEIGHT;
-	cam->fps = 25;
-
-	framelength=sizeof(unsigned char)*cam->width * cam->height * 2;
-
-	v4l2_init(cam);
-  init(Buff);
 
   if(thread[3] !=0) {   
       pthread_join(thread[3],NULL);
   }
   thread_wait();
 
-  v4l2_close(cam);
+  //v4l2_close(cam);
   RingBuffer_destroy(rbuf);
 
 #else

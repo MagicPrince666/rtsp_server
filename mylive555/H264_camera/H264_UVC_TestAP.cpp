@@ -64,7 +64,7 @@ int open_device(int i)
 
 	if (-1 == stat (dev_name, &st))
 	{
-		printf("Cannot identify '%s': %d, %s", dev_name, errno, strerror (errno));
+		printf("Cannot identify '%s': %d, %s\n", dev_name, errno, strerror (errno));
 		return -1;
 	}
 
@@ -280,12 +280,12 @@ int Init_264camera(void)
 
 	if(ret != -1)
 	{
-		printf("------open_device--success-- !\n");
+		//printf("------open_device--success-- !\n");
 		ret = init_device(width,height,format);
 	}
 	if(ret != -1)
 	{
-		printf("------init_device---success------- !\n");
+		//printf("------init_device---success------- !\n");
 		ret = start_previewing();
 	}
 

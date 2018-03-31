@@ -24,6 +24,7 @@
 #include "h264_camera.h"
 #include "ringbuffer.h"
 
+static bool s_quit = true; 
 
 #define Cbuf 1
 
@@ -103,7 +104,6 @@ init(struct cam_data *c)
 void
 *video_Capture_Thread(void *arg)
 {
-	//compress_begin(&en, cam->width, cam->height);//初始化编码器
 
 	int i=0;
 
@@ -117,11 +117,11 @@ void
 
 	while(1)
 	{
-		// if(start == false)
-		// {
-		// 	usleep(10);
-		// 	continue;
-		// }
+		if(s_quit)
+		{
+			usleep(1000);
+			continue;
+		}
 		usleep(DelayTime);
 
 		gettimeofday(&now, NULL);
@@ -209,11 +209,11 @@ void
 
 	while(1)
 	{	
-		// if(start == false)
-		// {
-		// 	usleep(10);
-		// 	continue;
-		// }
+		if(s_quit)
+		{
+			usleep(1000);
+			continue;
+		}
 
 		if((flag[1]==0 && flag[0]==0) || (flag[i]==-1)) continue;
 
@@ -291,4 +291,94 @@ thread_wait(void)
         if(thread[1] !=0) {   
                 pthread_join(thread[1],NULL);
         }
+}
+
+
+const int QUEUE_LEN_MAX = 4;
+const int QUEUE_SIMPLE_UNIT_SIZE = 100000;
+
+void Soft_init()
+{
+	cam = (struct camera *) malloc(sizeof(struct camera));
+	if (!cam) {
+		printf("malloc camera failure!\n");
+		exit(1);
+	}
+
+	cam->device_name = (char *)DEVICE;
+	cam->buffers = NULL;
+	cam->width = SET_WIDTH;
+	cam->height = SET_HEIGHT;
+	cam->fps = 25;
+
+	framelength=sizeof(unsigned char)*cam->width * cam->height * 2;
+
+  	v4l2_init(cam);
+	//init(Buff);
+}
+
+int Soft_uinit()
+{	
+	v4l2_close(cam);
+	return 0;
+};
+
+void* Soft_FetchData::s_source = NULL;
+
+
+static bool emptyBuffer = false;
+
+int Soft_FetchData::getData(void* fTo, unsigned fMaxSize, unsigned& fFrameSize, unsigned& fNumTruncatedBytes)
+{
+	
+	if(!s_b_running)
+	{
+		printf("FetchData::getData s_b_running = false  \n");
+		return 0;
+	}
+	
+	unsigned len = RingBuffer_read(rbuf,(uint8_t*)fTo,fMaxSize);
+
+	//拷贝视频到live555缓存
+	if(len < fMaxSize)
+	{            
+		fFrameSize = len;
+		fNumTruncatedBytes = 0;
+	}        
+	else        
+	{           
+		fNumTruncatedBytes = len - fMaxSize; 
+		fFrameSize = fMaxSize;
+	}
+
+	return len;
+}	
+
+bool Soft_FetchData::s_b_running=false;
+
+
+void Soft_FetchData::EmptyBuffer()
+{
+	emptyBuffer = true;
+}
+
+void Soft_FetchData::startCap()
+{
+	s_b_running = true;
+	if(!s_quit)
+	{
+		return;
+	}
+	s_quit = false;
+    Soft_init();
+	printf("pthread_create ok \n");  
+}
+
+void Soft_FetchData::stopCap()
+{
+	s_b_running = false;
+	printf("FetchData stopCap\n");  
+    s_quit = true;
+
+    Soft_uinit();
 }

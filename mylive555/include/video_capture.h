@@ -60,7 +60,7 @@ struct camera {
 
 void errno_exit(const char *s);
 
-int xioctl(int fd, int request, void *arg);
+//int xioctl(int fd, int request, void *arg);
 
 void open_camera(struct camera *cam);
 void close_camera(struct camera *cam);
