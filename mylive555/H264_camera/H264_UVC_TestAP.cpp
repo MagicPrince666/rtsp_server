@@ -267,7 +267,7 @@ int start_previewing(void)
 
 extern bool start;
 
-void Init_264camera(void)
+int Init_264camera(void)
 {
 	int width = 1280; 
 	int height = 720;
@@ -304,12 +304,13 @@ void Init_264camera(void)
 	ret = XU_Init_Ctrl(vd->fd);
 	if(ret<0)
 	{
-		printf("XU_H264_Set_BitRate Failed\n");			
+		printf("XU_H264_Set_BitRate Failed\n");		
+		return -1;	
 	} 
 	else
 	{
 		double m_BitRate = 0.0;
-		if(XU_H264_Set_BitRate(vd->fd, 4096*1024) < 0 )//设置码率
+		if(XU_H264_Set_BitRate(vd->fd, 2048*1024) < 0 )//设置码率
 		{
 			printf("XU_H264_Set_BitRate Failed\n");
 		}
@@ -324,10 +325,7 @@ void Init_264camera(void)
 		
 	}
 
-	remove("Record.264");
-    rec_fp1 = fopen("Record.264", "a+b");
-	if(rec_fp1 != NULL)
-		printf("---create Record.264------success------- !\n");	
+	return 0;
 }
 
  
@@ -389,4 +387,186 @@ void * Cap_H264_Video (void *arg)
 	close_v4l2(vd);
 	pthread_exit(NULL);
 }
+
+int SUPPORTED_BUFFER_NUMBER = 4;
+struct v4l2_buffer __buf;
+
+void cameraUninit(void)
+{
+
+  if(!buffers) return;//已经释放，直接返回
+
+	for (n_buffers = 0; n_buffers < SUPPORTED_BUFFER_NUMBER; ++n_buffers)
+	{
+		if(buffers[n_buffers].start!=NULL)
+		{   			
+			if(-1==munmap(buffers[n_buffers].start,buffers[n_buffers].length))
+			{
+				perror("Fail to \"munmap\"\n");
+			}
+		}else
+		{   
+			printf("__buffers[%d].start=0__\n",n_buffers);
+		}   
+	}
+
+	// 释放申请的存储空间
+	if(buffers)
+	{
+		free(buffers);
+		buffers=NULL;
+	}
+
+	if(vd)
+	{
+		if(vd->fd > 0)
+		{
+			int r = close(vd->fd);	
+			vd->fd = -1;
+		}
+		
+		int r1 = close_v4l2(vd);
+		vd = NULL;
+	}
 	
+};
+
+const int QUEUE_LEN_MAX = 4;
+const int QUEUE_SIMPLE_UNIT_SIZE = 100000;
+
+void Init()
+{
+  	Init_264camera();
+}
+
+
+
+int Uinit()
+{	
+	cameraUninit();	
+	return 0;
+};
+
+void* FetchData::s_source = NULL;
+bool s_quit = true; 
+
+bool emptyBuffer = false;
+
+int FetchData::bit_rate_setting(int rate)
+{
+	int ret = -1;
+	
+	
+	if(!s_quit)//未有客户端接入
+	{
+		if(vd->fd > 0)//未初始化不能访问
+			ret = XU_Init_Ctrl(vd->fd);
+		if(ret<0)
+		{
+			printf("XU_H264_Set_BitRate Failed\n");	
+		} else
+		{
+			double m_BitRate = 0.0;
+			
+			if(XU_H264_Set_BitRate(vd->fd, rate) < 0 )
+				printf("XU_H264_Set_BitRate Failed\n");
+
+			XU_H264_Get_BitRate(vd->fd, &m_BitRate);
+			if(m_BitRate < 0 )
+				printf("XU_H264_Get_BitRate Failed\n");
+
+			printf("----m_BitRate:%f----\n", m_BitRate);			
+		}
+	}
+	else
+	{
+		printf("camera no init\n");
+		return 1;
+	}
+	return ret;
+}
+
+int FetchData::getData(void* fTo, unsigned fMaxSize, unsigned& fFrameSize, unsigned& fNumTruncatedBytes)
+{
+	
+	if(!s_b_running)
+	{
+		printf("FetchData::getData s_b_running = false  \n");
+		return 0;
+	}
+	
+	if(vd == NULL || vd->fd == NULL)
+	{
+		printf("test FCCC 4 \n");	
+		return NULL;
+	}
+	
+	CLEAR (__buf);
+	__buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	__buf.memory = V4L2_MEMORY_MMAP;
+	
+	int ret = ioctl(vd->fd, VIDIOC_DQBUF, &__buf);
+	
+	if (ret < 0) 
+	{
+		printf("FetchData Unable to dequeue buffer ret:%d!\n", ret);
+		cameraUninit();
+		if(-1 == Init_264camera())
+			exit(0);
+		return 0;
+	}
+	
+	unsigned len = __buf.bytesused;
+
+	//拷贝视频到live555缓存
+	if(len < fMaxSize)
+	{            
+		memcpy(fTo, buffers[__buf.index].start, len);
+		fFrameSize = len;
+		fNumTruncatedBytes = 0;
+	}        
+	else        
+	{           
+		memcpy(fTo, buffers[__buf.index].start, fMaxSize);
+		fNumTruncatedBytes = len - fMaxSize; 
+		fFrameSize = fMaxSize;
+	}
+
+	ret = ioctl(vd->fd, VIDIOC_QBUF, &__buf);
+
+	if (ret < 0) 
+	{
+		printf("Unable to requeue buffer\n");
+	}
+
+	return len;
+}	
+
+bool FetchData::s_b_running=false;
+
+
+void FetchData::EmptyBuffer()
+{
+	emptyBuffer = true;
+}
+
+void FetchData::startCap()
+{
+	s_b_running = true;
+	if(!s_quit)
+	{
+		return;
+	}
+	s_quit = false;
+    Init();
+	printf("pthread_create ok \n");  
+}
+
+void FetchData::stopCap()
+{
+	s_b_running = false;
+	printf("FetchData stopCap\n");  
+    s_quit = true;
+
+    Uinit();
+}

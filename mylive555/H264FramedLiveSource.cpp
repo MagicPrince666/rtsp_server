@@ -27,7 +27,9 @@ H264FramedLiveSource::H264FramedLiveSource( UsageEnvironment& env)
     gettimeofday(&sPresentationTime, NULL);
 
 	//启动获取视频数据线程
+	FetchData::startCap();
 	emptyBufferFlag = true;
+	FetchData::setSource(this);
 	m_eventTriggerId = envir().taskScheduler().createEventTrigger(H264FramedLiveSource::updateDataNotify);
 }
 
@@ -35,9 +37,8 @@ H264FramedLiveSource::H264FramedLiveSource( UsageEnvironment& env)
 H264FramedLiveSource::~H264FramedLiveSource()
 {
     //printf("close stream\n");
-    //start = false;
     printf("H264FramedLiveSource::~H264FramedLiveSource() \n");
-	
+	FetchData::stopCap();
 	envir().taskScheduler().deleteEventTrigger(m_eventTriggerId);
 }
 
@@ -88,79 +89,29 @@ void H264FramedLiveSource::doUpdateDataNotify()
 	afterGetting(this);
 }
 
-void H264FramedLiveSource::doGetNextFrame()
+void H264FramedLiveSource::GetFrameData()
 {
-#if 0
-    while(RingBuffer_empty(rbuf))usleep(100);//等待数据
-	fFrameSize = RingBuffer_read(rbuf,fTo,fMaxSize);
-
-    //fFrameSize = fMaxSize;
-    nextTask() = envir().taskScheduler().scheduleDelayedTask( 0,
-        (TaskFunc*)FramedSource::afterGetting, this);//表示延迟0秒后再执行 afterGetting 函数
-#else
-    if(!m_started)
-	{
-		m_started =true;
-	}
-    int ret;
-	struct v4l2_buffer buf;
-	//Init_264camera();
-
-    CLEAR (buf);
-        
-    buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    buf.memory = V4L2_MEMORY_MMAP;
-		
-    ret = ioctl(vd->fd, VIDIOC_DQBUF, &buf);
-    if (ret < 0) 
-    {
-        printf("Unable to dequeue buffer!\n");
-        exit(1);
-    }	  
-    
-    //fwrite(buffers[buf.index].start, buf.bytesused, 1, rec_fp1);
-    unsigned len = buf.bytesused;
-
-    //拷贝视频到live555缓存
-    if(len < fMaxSize)
-    {            
-        memcpy(fTo, buffers[buf.index].start, len);
-        fFrameSize = len;
-        fNumTruncatedBytes = 0;
-    }        
-    else        
-    {           
-        memcpy(fTo, buffers[buf.index].start, fMaxSize);
-        fNumTruncatedBytes = len - fMaxSize; 
-        fFrameSize = fMaxSize;
-    }
-    //RingBuffer_write(rbuf,(uint8_t*)(buffers[buf.index].start),buf.bytesused);
-
-    //fFrameSize = fMaxSize;
-    nextTask() = envir().taskScheduler().scheduleDelayedTask( 0,
-    (TaskFunc*)FramedSource::afterGetting, this);//表示延迟0秒后再执行 afterGetting 函数
-
-    ret = ioctl(vd->fd, VIDIOC_QBUF, &buf);
-    
-    if (ret < 0) 
-    {
-        printf("Unable to requeue buffer");
-        exit(1);
-    }
-
-    gettimeofday(&fPresentationTime, NULL);
+	unsigned len = FetchData::getData(fTo,fMaxSize, fFrameSize, fNumTruncatedBytes);
+	
+	gettimeofday(&fPresentationTime, NULL);
 	afterGetting(this);
 
 	if(!m_can_get_nextframe)
 	{
-		envir().taskScheduler().unscheduleDelayedTask(nextTask());
-		// DBGFUNS("Tiam335xH264Source m_is_queue_empty=true tid:%d\n",pthread_self());
-		
+		envir().taskScheduler().unscheduleDelayedTask(nextTask());	
 		m_is_queue_empty=true;
 	}
-#endif
-    
-    //return;
+			
+} 
+
+
+void H264FramedLiveSource::doGetNextFrame()
+{
+    if(!m_started)
+	{
+		m_started =true;
+	}
+    GetFrameData();
 }
 
 void H264FramedLiveSource::doStopGettingFrames()
@@ -171,7 +122,6 @@ void H264FramedLiveSource::doStopGettingFrames()
 
 	while(!m_is_queue_empty && m_started)
 	{
-		// DBGFUNS("Tiam335xH264Source STOP FRAME 2  tid:%d\n",pthread_self());
 		usleep(10000);
 	}
 
@@ -181,6 +131,6 @@ void H264FramedLiveSource::doStopGettingFrames()
 //网络包尺寸，注意尺寸不能太小，否则会崩溃
 unsigned int H264FramedLiveSource::maxFrameSize() const
 {
-	//printf("H264FramedLiveSource::maxFrameSize \n");
+	printf("H264FramedLiveSource::maxFrameSize \n");
 	return 150000;
 }

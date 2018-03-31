@@ -39,6 +39,7 @@ private:
     int TransportData( unsigned char* to, unsigned maxSize );
 
 protected:
+    void GetFrameData();
     void *m_pToken; 
     static struct timeval sPresentationTime;
     static struct timeval sdiff;

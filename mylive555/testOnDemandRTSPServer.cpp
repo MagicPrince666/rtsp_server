@@ -228,7 +228,7 @@ int main(int argc, char** argv) {
 
 #else
   
-  Init_264camera();
+  //Init_264camera();
   // pthread_t thread[2];
   // //if((pthread_create(&thread[0], NULL, Cap_H264_Video, NULL)) != 0)   
   // //    printf("Cap_H264_Video create fail!\n");
@@ -279,17 +279,11 @@ int main(int argc, char** argv) {
     ServerMediaSession* sms
       = ServerMediaSession::createNew(*env, streamName, streamName,
                       descriptionString);
-    //sms->addSubsession(H264LiveVideoServerMediaSubssion
-    //           ::createNew(*env, NULL));//修改为自己实现的servermedia  H264LiveVideoServerMediaSubssion
-    
-    //TaskScheduler* scheduler = BasicTaskScheduler::createNew();
-  	//video_env = BasicUsageEnvironment::createNew(*scheduler);
-	  //ServerMediaSession* s = (ServerMediaSession*)param;
-
+                      
+    //修改为自己实现的servermedia  H264LiveVideoServerMediaSubssion
     sms->addSubsession(H264LiveVideoServerMediaSubssion
-		       ::createNew(*env, NULL));
-
-    //env->taskScheduler().doEventLoop(); // does not return
+               ::createNew(*env, NULL));
+    
     
     rtspServer->addServerMediaSession(sms);
 
