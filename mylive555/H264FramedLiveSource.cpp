@@ -109,8 +109,6 @@ void H264FramedLiveSource::GetFrameData()
 {
 	
 #if SOFT_H264
-	//while(RingBuffer_empty(rbuf))usleep(100);//等待数据
-	//fFrameSize = RingBuffer_read(rbuf,fTo,fMaxSize);
 	unsigned len = Soft_FetchData::getData(fTo,fMaxSize, fFrameSize, fNumTruncatedBytes);
 #else
 	unsigned len = FetchData::getData(fTo,fMaxSize, fFrameSize, fNumTruncatedBytes);

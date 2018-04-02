@@ -41,47 +41,9 @@ extern FILE *h264_fp;
 extern uint8_t *h264_buf;
 
 extern RingBuffer* rbuf;//from ringbuffer.cpp
-extern bool start;		//from H164FramedLiveSource.cpp
 
 
-int record_h264()
-{
-	cam = (struct camera *) malloc(sizeof(struct camera));
-	if (!cam) {
-		printf("malloc camera failure!\n");
-		exit(1);
-	}
-	cam->device_name = (char *)DEVICE;
-	cam->buffers = NULL;
-	cam->width = SET_WIDTH;
-	cam->height = SET_HEIGHT;
-	cam->fps = 25;
-
-	framelength=sizeof(unsigned char)*cam->width * cam->height * 2;
-
-	v4l2_init(cam);
-
-	init(Buff);
-
-	//创建线程
-	printf("Making thread...\n");
-
-	thread_create();
-
-	printf("Waiting for thread...\n");
-
-	thread_wait();
-
-	printf("-----------end program------------");
-	v4l2_close(cam);
-
-	return 0;
-
-}
-
-
-void
-init(struct cam_data *c)
+void init(struct cam_data *c)
 {
 	flag[0]=flag[1]=0;
 
@@ -99,8 +61,7 @@ init(struct cam_data *c)
 
 
 
-void
-*video_Capture_Thread(void *arg)
+void *video_Capture_Thread(void *arg)
 {
 	cam = (struct camera *) malloc(sizeof(struct camera));
 	if (!cam) {
@@ -182,8 +143,7 @@ void
 }
 
 
-void
-*video_Encode_Thread(void *arg)
+void *video_Encode_Thread(void *arg)
 {
 	int i=-1;
 
@@ -235,33 +195,6 @@ void
 	}
 }
 
-void
-thread_create(void)
-{
-        int temp;
-
-        memset(&thread, 0, sizeof(thread));  
-
-		/*创建线程*/
-        if((temp = pthread_create(&thread[0], NULL, video_Capture_Thread, NULL)) != 0)   
-                printf("video_Capture_Thread create fail!\n");
-
-        if((temp = pthread_create(&thread[1], NULL, video_Encode_Thread, NULL)) != 0)  
-                printf("video_Encode_Thread create fail!\n");
-}
-
-void
-thread_wait(void)
-{
-        /*等待线程结束*/
-        if(thread[0] !=0) {  
-                pthread_join(thread[0],NULL);
-        }
-        if(thread[1] !=0) {   
-                pthread_join(thread[1],NULL);
-        }
-}
-
 void Soft_init()
 {
   	//v4l2_init(cam);
@@ -296,10 +229,8 @@ int Soft_FetchData::getData(void* fTo, unsigned fMaxSize, unsigned& fFrameSize, 
 		usleep(100);//等待数据
 		fFrameSize = 0;
 		fNumTruncatedBytes = 0;
-		return fFrameSize;
 	}
 	fFrameSize = RingBuffer_read(rbuf,(uint8_t*)fTo,fMaxSize);
-	//fFrameSize = RingBuffer_read(rbuf,(uint8_t*)fTo,fMaxSize);
 	fNumTruncatedBytes = 0;
 #else
 		fFrameSize = 0;
@@ -331,8 +262,7 @@ void Soft_FetchData::EmptyBuffer()
 void Soft_FetchData::startCap()
 {
 	s_b_running = true;
-	if(!s_quit)
-		return;
+	if(!s_quit)return;
 	s_quit = false;
     Soft_init();
 	printf("FetchData startCap\n");   
@@ -341,10 +271,7 @@ void Soft_FetchData::startCap()
 void Soft_FetchData::stopCap()
 {
 	s_b_running = false;
-	
     s_quit = true;
-
     Soft_uinit();
-
 	printf("FetchData stopCap\n");  
 }

@@ -23,8 +23,6 @@ int read_buffer(void * opaque,uint8_t *buf, int buf_size);
 void init(struct cam_data *c);
 void *video_Capture_Thread(void *arg);
 void *video_Encode_Thread(void *arg);
-void thread_create(void);
-void thread_wait(void);
 
 class Soft_FetchData
 {

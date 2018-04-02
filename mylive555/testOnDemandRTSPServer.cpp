@@ -191,7 +191,7 @@ int main(int argc, char** argv) {
       pthread_join(thread[1],NULL);
   }
 
-  //v4l2_close(cam);
+  v4l2_close(cam);
   RingBuffer_destroy(rbuf);
 
 #else
