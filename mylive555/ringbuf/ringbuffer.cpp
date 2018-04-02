@@ -1,4 +1,5 @@
 #include "ringbuffer.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -33,6 +34,7 @@ RingBuffer *RingBuffer_create(int length)
 
     memset(buffer->buf, 0, size);
 
+    //printf("ringbuffer init success\n");
     return buffer;
 }
 

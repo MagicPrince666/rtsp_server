@@ -1,6 +1,6 @@
 CPP = g++
 
-TARGET	= live555
+TARGET	= RTSPServer
 
 DIR		= . ./camera ./ringbuf ./H264_camera
 

@@ -23,8 +23,6 @@ H264FramedLiveSource::H264FramedLiveSource( UsageEnvironment& env)
 	m_is_queue_empty =false;
 	bVideoFirst = true;
 	m_started = false;
-
-    //printf("H264FramedLiveSource::H264FramedLiveSource \n");
     gettimeofday(&sPresentationTime, NULL);
 
 	//启动获取视频数据线程
@@ -50,7 +48,7 @@ H264FramedLiveSource::H264FramedLiveSource( UsageEnvironment& env)
 
 H264FramedLiveSource::~H264FramedLiveSource()
 {
-    //printf("close stream\n");
+    printf("close stream\n");
     printf("H264FramedLiveSource::~H264FramedLiveSource() \n");
 
 #if SOFT_H264
@@ -113,8 +111,11 @@ void H264FramedLiveSource::GetFrameData()
 {
 	
 #if SOFT_H264
+	//while(RingBuffer_empty(rbuf)) usleep(1000);
 	//fFrameSize = RingBuffer_read(rbuf,fTo,fMaxSize);
+	//printf("H264FramedLiveSource::GetFrameData 1\n");
 	unsigned len = Soft_FetchData::getData(fTo,fMaxSize, fFrameSize, fNumTruncatedBytes);
+	//printf("H264FramedLiveSource::GetFrameData 2\n");
 #else
 	unsigned len = FetchData::getData(fTo,fMaxSize, fFrameSize, fNumTruncatedBytes);
 #endif

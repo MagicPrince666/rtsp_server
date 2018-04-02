@@ -101,16 +101,33 @@ init(struct cam_data *c)
 void
 *video_Capture_Thread(void *arg)
 {
+	cam = (struct camera *) malloc(sizeof(struct camera));
+	if (!cam) {
+		printf("malloc camera failure!\n");
+		exit(1);
+	}
+	cam->device_name = (char *)DEVICE;
+	cam->buffers = NULL;
+	cam->width = SET_WIDTH;
+	cam->height = SET_HEIGHT;
+	cam->fps = 25;
+
+	framelength=sizeof(unsigned char)*cam->width * cam->height * 2;
+
+	v4l2_init(cam);
+
+	init(Buff);
+	printf("camera Init success\n");
 
 	int i=0;
-
-	//unsigned char *data;
 
 	int len=framelength;
 	
 	struct timeval now;
 
 	struct timespec outtime;
+
+	printf("ready to capture\n");
 
 	while(1)
 	{
@@ -121,7 +138,7 @@ void
 		}
 
 		usleep(DelayTime);
-
+                                                                                                                                                                                                                                                                                                                                                                                                                            
 		gettimeofday(&now, NULL);
 
 		outtime.tv_sec =now.tv_sec;
@@ -171,6 +188,8 @@ void
 {
 	int i=-1;
 
+	sleep(1);
+	printf("ready to encode\n");
 
 	while(1)
 	{	
@@ -197,7 +216,7 @@ void
 
 		if (h264_length > 0) {
 	
-			//printf("%s%d\n","-----------h264_length=",h264_length);
+			printf("%s%d\n","-----------h264_length=",h264_length);
 			//写h264文件
 			//fwrite(h264_buf, h264_length, 1, h264_fp);
 	
@@ -210,7 +229,7 @@ void
 
 		}
 
-		Buff[i].rpos+=framelength;
+		Buff[i].rpos += framelength;
 
 		if(Buff[i].rpos>=BUF_SIZE) { Buff[i].rpos=0;Buff[!i].rpos=0;flag[i]=-1;}
 
@@ -254,14 +273,14 @@ const int QUEUE_SIMPLE_UNIT_SIZE = 100000;
 
 void Soft_init()
 {
-  	v4l2_init(cam);
+  	//v4l2_init(cam);
 	//init(Buff);
 	printf("Camera init\n");
 }
 
 int Soft_uinit()
 {	
-	v4l2_close(cam);
+	//v4l2_close(cam);
 	printf("Camera uinit\n");
 	return 0;
 }

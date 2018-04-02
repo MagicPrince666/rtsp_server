@@ -88,6 +88,7 @@ void* video_thread_func(void* param)
 
 void *video_live_Thread(void *arg)
 {
+  printf("start live555 thread\n");
 // Begin by setting up our usage environment:
   TaskScheduler* scheduler = BasicTaskScheduler::createNew();
   env = BasicUsageEnvironment::createNew(*scheduler);
@@ -166,32 +167,26 @@ int main(int argc, char** argv) {
 
   rbuf = RingBuffer_create(DEFAULT_BUF_SIZE);
 
-  cam = (struct camera *) malloc(sizeof(struct camera));
-	if (!cam) {
-		printf("malloc camera failure!\n");
-		exit(1);
-	}
-	cam->device_name = (char *)DEVICE;
-	cam->buffers = NULL;
-	cam->width = SET_WIDTH;
-	cam->height = SET_HEIGHT;
-	cam->fps = 25;
-
-	framelength=sizeof(unsigned char)*cam->width * cam->height * 2;
-
-	//v4l2_init(cam);
-
-	init(Buff);
 
   if((pthread_create(&thread[3], NULL, video_live_Thread, NULL)) != 0)   
     printf("video_live_Thread create fail!\n");
 
-  thread_create();
+  if((pthread_create(&thread[0], NULL, video_Capture_Thread, NULL)) != 0)   
+    printf("video_Capture_Thread create fail!\n");
+
+  if((pthread_create(&thread[1], NULL, video_Encode_Thread, NULL)) != 0)  
+    printf("video_Encode_Thread create fail!\n");
+
 
   if(thread[3] !=0) {   
       pthread_join(thread[3],NULL);
   }
-  thread_wait();
+  if(thread[0] !=0) {  
+      pthread_join(thread[0],NULL);
+  }
+  if(thread[1] !=0) {   
+      pthread_join(thread[1],NULL);
+  }
 
   //v4l2_close(cam);
   RingBuffer_destroy(rbuf);

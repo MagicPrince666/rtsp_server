@@ -133,6 +133,7 @@ int buffOneFrame(struct cam_data *tmp , struct camera *cam )
 			/* Could ignore EIO, see spec. */
 			/* fall through */
 		default:
+			printf("debug 1\n");
 			errno_exit("VIDIOC_DQBUF");
 		}
 	}
