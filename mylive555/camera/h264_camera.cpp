@@ -18,7 +18,7 @@
 #include <pthread.h>
 #include <time.h>
 
-
+#include "H264FramedLiveSource.hh"
 #include "h264encoder.h"
 #include "video_capture.h"
 #include "h264_camera.h"
