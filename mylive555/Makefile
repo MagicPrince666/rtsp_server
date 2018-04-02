@@ -13,7 +13,7 @@ groupsock := $(livedir)groupsock
 live := $(livedir)
 
 LIBSDIR += -L$(usageenviroment) -L$(basicusage) -L$(live) -L$(livemedia) -L$(groupsock)
-INC		+= -I./include -I./ringbuf -I/usr/include -I./H264_camera
+INC		+= -I./include -I./ringbuf -I/usr/include -I./H264_camera -I./camera
 INC		+= -I$(usageenviroment)/include -I$(basicusage)/include -I$(livemedia)/include -I$(groupsock)/include
 
 LDFLAGS += -L./lib $(LIBSDIR) -lx264 -lliveMedia -lBasicUsageEnvironment -lgroupsock -lUsageEnvironment

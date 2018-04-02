@@ -12,5 +12,6 @@ mediaServer/*.o
 mediaServer/live555MediaServer
 testProgs/
 mylive555/objs/
+mylive555/lib/
 mylive555/RTSPServer
 mylive555/*.264

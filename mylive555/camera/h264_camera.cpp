@@ -41,6 +41,7 @@ extern FILE *h264_fp;
 extern uint8_t *h264_buf;
 
 extern RingBuffer* rbuf;//from ringbuffer.cpp
+extern bool start;		//from H164FramedLiveSource.cpp
 
 
 int record_h264()
@@ -106,6 +107,7 @@ void
 		printf("malloc camera failure!\n");
 		exit(1);
 	}
+
 	cam->device_name = (char *)DEVICE;
 	cam->buffers = NULL;
 	cam->width = SET_WIDTH;
@@ -115,11 +117,11 @@ void
 	framelength=sizeof(unsigned char)*cam->width * cam->height * 2;
 
 	v4l2_init(cam);
-
-	init(Buff);
-	printf("camera Init success\n");
+  	init(Buff);
 
 	int i=0;
+
+	//unsigned char *data;
 
 	int len=framelength;
 	
@@ -127,18 +129,15 @@ void
 
 	struct timespec outtime;
 
-	printf("ready to capture\n");
-
 	while(1)
 	{
 		if(s_quit)
 		{
-			usleep(1000);
+			usleep(10);
 			continue;
 		}
-
 		usleep(DelayTime);
-                                                                                                                                                                                                                                                                                                                                                                                                                            
+
 		gettimeofday(&now, NULL);
 
 		outtime.tv_sec =now.tv_sec;
@@ -188,14 +187,12 @@ void
 {
 	int i=-1;
 
-	sleep(1);
-	printf("ready to encode\n");
 
 	while(1)
 	{	
 		if(s_quit)
 		{
-			usleep(1000);
+			usleep(10);
 			continue;
 		}
 
@@ -216,20 +213,15 @@ void
 
 		if (h264_length > 0) {
 	
-			printf("%s%d\n","-----------h264_length=",h264_length);
+			//printf("%s%d\n","-----------h264_length=",h264_length);
 			//写h264文件
 			//fwrite(h264_buf, h264_length, 1, h264_fp);
-	
-#if SOFT_H264
 
 			RingBuffer_write(rbuf,h264_buf,h264_length);
-#else			
-			fwrite(h264_buf, h264_length, 1, h264_fp);
-#endif
-
+			//printf("buf front:%d rear :%d\n",q.front,q.rear);
 		}
 
-		Buff[i].rpos += framelength;
+		Buff[i].rpos+=framelength;
 
 		if(Buff[i].rpos>=BUF_SIZE) { Buff[i].rpos=0;Buff[!i].rpos=0;flag[i]=-1;}
 
@@ -267,10 +259,6 @@ thread_wait(void)
         }
 }
 
-
-const int QUEUE_LEN_MAX = 4;
-const int QUEUE_SIMPLE_UNIT_SIZE = 100000;
-
 void Soft_init()
 {
   	//v4l2_init(cam);
@@ -292,32 +280,29 @@ static bool emptyBuffer = false;
 
 int Soft_FetchData::getData(void* fTo, unsigned fMaxSize, unsigned& fFrameSize, unsigned& fNumTruncatedBytes)
 {
-	
 	if(!s_b_running)
 	{
 		printf("Soft_FetchData::getData s_b_running = false  \n");
 		return 0;
 	}
 
-#if SOFT_H264
-	while(RingBuffer_empty(rbuf)) usleep(1000);
-	unsigned len = RingBuffer_read(rbuf,(uint8_t*)fTo,fMaxSize);
-#else
-	unsigned len = 0;
-#endif
-	//拷贝视频到live555缓存
-	if(len < fMaxSize)
-	{            
-		fFrameSize = len;
-		fNumTruncatedBytes = 0;
-	}        
-	else        
-	{           
-		fNumTruncatedBytes = len - fMaxSize; 
-		fFrameSize = fMaxSize;
-	}
+	if(!RingBuffer_empty(rbuf))
+	fFrameSize = RingBuffer_read(rbuf,(uint8_t*)fTo,fMaxSize);
+	fNumTruncatedBytes = 0;
 
-	return len;
+	// //拷贝视频到live555缓存
+	// if(len < fMaxSize)
+	// {            
+	// 	fFrameSize = len;
+	// 	fNumTruncatedBytes = 0;
+	// }        
+	// else        
+	// {           
+	// 	fNumTruncatedBytes = len - fMaxSize; 
+	// 	fFrameSize = fMaxSize;
+	// }
+
+	return fFrameSize;
 }	
 
 bool Soft_FetchData::s_b_running=false;
@@ -332,9 +317,7 @@ void Soft_FetchData::startCap()
 {
 	s_b_running = true;
 	if(!s_quit)
-	{
 		return;
-	}
 	s_quit = false;
     Soft_init();
 	printf("FetchData startCap\n");   

@@ -12,7 +12,6 @@ extern RingBuffer* rbuf;
 #include "H264_UVC_TestAP.h"
 
 #endif
-//extern struct vdIn *vd;
 
 bool emptyBufferFlag = true;
 
@@ -31,7 +30,6 @@ H264FramedLiveSource::H264FramedLiveSource( UsageEnvironment& env)
 	printf("Soft wave H264FramedLiveSource::H264FramedLiveSource \n");
 	Soft_FetchData::startCap();
 	emptyBufferFlag = true;
-	//Soft_FetchData::setSource(this);
 
 #else
 
@@ -111,11 +109,8 @@ void H264FramedLiveSource::GetFrameData()
 {
 	
 #if SOFT_H264
-	//while(RingBuffer_empty(rbuf)) usleep(1000);
-	//fFrameSize = RingBuffer_read(rbuf,fTo,fMaxSize);
-	//printf("H264FramedLiveSource::GetFrameData 1\n");
-	unsigned len = Soft_FetchData::getData(fTo,fMaxSize, fFrameSize, fNumTruncatedBytes);
-	//printf("H264FramedLiveSource::GetFrameData 2\n");
+	while(RingBuffer_empty(rbuf))usleep(100);//等待数据
+	fFrameSize = RingBuffer_read(rbuf,fTo,fMaxSize);
 #else
 	unsigned len = FetchData::getData(fTo,fMaxSize, fFrameSize, fNumTruncatedBytes);
 #endif

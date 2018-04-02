@@ -177,7 +177,6 @@ int main(int argc, char** argv) {
   if((pthread_create(&thread[1], NULL, video_Encode_Thread, NULL)) != 0)  
     printf("video_Encode_Thread create fail!\n");
 
-
   if(thread[3] !=0) {   
       pthread_join(thread[3],NULL);
   }
