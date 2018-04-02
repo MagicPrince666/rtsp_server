@@ -216,8 +216,11 @@ void
 			//printf("%s%d\n","-----------h264_length=",h264_length);
 			//写h264文件
 			//fwrite(h264_buf, h264_length, 1, h264_fp);
-
+#if SOFT_H264
 			RingBuffer_write(rbuf,h264_buf,h264_length);
+#else
+			fwrite(h264_buf, h264_length, 1, h264_fp);
+#endif
 			//printf("buf front:%d rear :%d\n",q.front,q.rear);
 		}
 
@@ -286,6 +289,8 @@ int Soft_FetchData::getData(void* fTo, unsigned fMaxSize, unsigned& fFrameSize, 
 		return 0;
 	}
 
+#if SOFT_H264
+			
 	if(RingBuffer_empty(rbuf))
 	{
 		usleep(100);//等待数据
@@ -296,7 +301,10 @@ int Soft_FetchData::getData(void* fTo, unsigned fMaxSize, unsigned& fFrameSize, 
 	fFrameSize = RingBuffer_read(rbuf,(uint8_t*)fTo,fMaxSize);
 	//fFrameSize = RingBuffer_read(rbuf,(uint8_t*)fTo,fMaxSize);
 	fNumTruncatedBytes = 0;
-
+#else
+		fFrameSize = 0;
+		fNumTruncatedBytes = 0;
+#endif
 	// //拷贝视频到live555缓存
 	// if(len < fMaxSize)
 	// {            

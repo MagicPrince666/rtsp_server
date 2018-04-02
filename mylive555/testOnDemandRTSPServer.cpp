@@ -71,6 +71,7 @@ static void _signal_handler(int signum)
 } 
 
 UsageEnvironment* video_env;
+static pthread_t video_thread;
 
 //視頻採集
 void* video_thread_func(void* param)
@@ -88,7 +89,7 @@ void* video_thread_func(void* param)
 
 void *video_live_Thread(void *arg)
 {
-  printf("start live555 thread\n");
+  //printf("start live555 thread\n");
 // Begin by setting up our usage environment:
   TaskScheduler* scheduler = BasicTaskScheduler::createNew();
   env = BasicUsageEnvironment::createNew(*scheduler);
@@ -127,8 +128,11 @@ void *video_live_Thread(void *arg)
     ServerMediaSession* sms
       = ServerMediaSession::createNew(*env, streamName, streamName,
                       descriptionString);
-    sms->addSubsession(H264LiveVideoServerMediaSubssion
-               ::createNew(*env, NULL));//修改为自己实现的servermedia  H264LiveVideoServerMediaSubssion
+    
+    pthread_create(&video_thread, NULL, video_thread_func,sms);
+
+    //修改为自己实现的servermedia  H264LiveVideoServerMediaSubssion
+    //sms->addSubsession(H264LiveVideoServerMediaSubssion::createNew(*env, NULL));
     rtspServer->addServerMediaSession(sms);
 
     announceStream(rtspServer, sms, streamName, NULL);
@@ -229,10 +233,10 @@ int main(int argc, char** argv) {
     ServerMediaSession* sms
       = ServerMediaSession::createNew(*env, streamName, streamName,
                       descriptionString);
-                      
+
+    pthread_create(&video_thread, NULL, video_thread_func,sms);                  
     //修改为自己实现的servermedia  H264LiveVideoServerMediaSubssion
-    sms->addSubsession(H264LiveVideoServerMediaSubssion
-               ::createNew(*env, NULL));
+    //sms->addSubsession(H264LiveVideoServerMediaSubssion::createNew(*env, NULL));
     
     
     rtspServer->addServerMediaSession(sms);

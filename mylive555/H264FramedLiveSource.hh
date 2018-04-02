@@ -3,7 +3,7 @@
 
 #include <FramedSource.hh>
 
-#define SOFT_H264 1  //定义是否使用软件压缩H264
+#define SOFT_H264 0  //定义是否使用软件压缩H264
 
 class H264FramedLiveSource : public FramedSource
 {
