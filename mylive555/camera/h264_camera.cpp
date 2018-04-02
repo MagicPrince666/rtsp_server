@@ -286,8 +286,15 @@ int Soft_FetchData::getData(void* fTo, unsigned fMaxSize, unsigned& fFrameSize, 
 		return 0;
 	}
 
-	if(!RingBuffer_empty(rbuf))
+	if(RingBuffer_empty(rbuf))
+	{
+		usleep(100);//等待数据
+		fFrameSize = 0;
+		fNumTruncatedBytes = 0;
+		return fFrameSize;
+	}
 	fFrameSize = RingBuffer_read(rbuf,(uint8_t*)fTo,fMaxSize);
+	//fFrameSize = RingBuffer_read(rbuf,(uint8_t*)fTo,fMaxSize);
 	fNumTruncatedBytes = 0;
 
 	// //拷贝视频到live555缓存
