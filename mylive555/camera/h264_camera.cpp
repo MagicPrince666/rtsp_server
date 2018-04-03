@@ -73,7 +73,7 @@ void *video_Capture_Thread(void *arg)
 	cam->buffers = NULL;
 	cam->width = SET_WIDTH;
 	cam->height = SET_HEIGHT;
-	cam->fps = 25;
+	cam->fps = 30;//设置30fps失败
 
 	framelength=sizeof(unsigned char)*cam->width * cam->height * 2;
 

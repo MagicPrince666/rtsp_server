@@ -277,14 +277,36 @@ void init_camera(struct camera *cam) {
 	if (-1 == xioctl(cam->fd, VIDIOC_S_FMT, fmt))
 		errno_exit("VIDIOC_S_FMT");
 
-	struct v4l2_streamparm parm;
-	memset(&parm, 0, sizeof parm);
-	parm.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	ioctl(cam->fd, VIDIOC_G_PARM, &parm);
-	parm.parm.capture.timeperframe.numerator = 1;
-	parm.parm.capture.timeperframe.denominator = cam->fps;
-	ioctl(cam->fd, VIDIOC_S_PARM, &parm);
-
+	// struct v4l2_streamparm parm;
+	// memset(&parm, 0, sizeof(parm));
+	// parm.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	// //if (-1 == xioctl(cam->fd, VIDIOC_G_PARM, &parm))
+	// //	errno_exit("VIDIOC_G_PARM");
+	// parm.parm.capture.capturemode = V4L2_MODE_HIGHQUALITY;
+    // //  parm.parm.capture.capability = V4L2_CAP_TIMEPERFRAME;
+	// parm.parm.capture.timeperframe.numerator = 1;
+	// parm.parm.capture.timeperframe.denominator = cam->fps;
+	// if (-1 == xioctl(cam->fd, VIDIOC_S_PARM, &parm))
+	// 	errno_exit("VIDIOC_S_PARM");
+	struct v4l2_streamparm *parm = (struct v4l2_streamparm *)malloc(sizeof(struct v4l2_streamparm));
+	memset(parm,0,sizeof(struct v4l2_streamparm));
+	parm->type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	parm->parm.capture.capturemode = V4L2_MODE_HIGHQUALITY;
+	//  parm->parm.capture.capability = V4L2_CAP_TIMEPERFRAME;
+	parm->parm.capture.timeperframe.denominator = 30 ;//时间间隔分母
+	parm->parm.capture.timeperframe.numerator = 1;//分子
+	if(-1 == ioctl(cam->fd,VIDIOC_S_PARM,parm))
+	{
+		perror("set param:");
+		exit(EXIT_FAILURE);
+	}
+	
+	//get message
+	if (-1 == xioctl(cam->fd, VIDIOC_G_PARM, parm))
+		errno_exit("VIDIOC_G_PARM");
+	printf("get fps = %d\n",parm->parm.capture.timeperframe.denominator);
+	
+	free(parm);
 	init_mmap(cam);
 }
 

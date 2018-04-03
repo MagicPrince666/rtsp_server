@@ -1,21 +1,18 @@
 #ifndef __H264_CAMERA_H__
 #define __H264_CAMERA_H__
 
-//#include "listop.h"
 
 #define CLEAR(x) memset (&(x), 0, sizeof (x))
 
-#define DelayTime 40*1000//(33us*1000=0.05s 30f/s)
+#define DelayTime 33*1000//(33us*1000=0.05s 30f/s)
 
 #define DEVICE "/dev/video0"
 #define SET_WIDTH 640
 #define SET_HEIGHT 480
-//#define BUFF_SIZE 32768
 
 extern struct cam_data Buff[2];
 extern pthread_t thread[3];
 
-//int h264_length=0;
 extern int framelength;
 extern struct camera *cam;
 
