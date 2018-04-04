@@ -1,3 +1,4 @@
+.vscode/
 liveMedia/*.o
 UsageEnvironment/*.o
 BasicUsageEnvironment/*.o
@@ -12,6 +13,6 @@ mediaServer/*.o
 mediaServer/live555MediaServer
 testProgs/
 mylive555/objs/*.o
-mylive555/lib/
+mylive555/lib/libx264.a
 mylive555/RTSPServer
 mylive555/*.264
