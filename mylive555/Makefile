@@ -2,7 +2,7 @@ CPP = g++
 
 TARGET	= RTSPServer
 
-DIR		= . ./camera ./ringbuf ./H264_camera
+DIR		= . ./camera ./ringbuf ./H264_camera ./raspberry
 
 
 livedir := ../
@@ -13,7 +13,7 @@ groupsock := $(livedir)groupsock
 live := $(livedir)
 
 LIBSDIR += -L$(usageenviroment) -L$(basicusage) -L$(live) -L$(livemedia) -L$(groupsock)
-INC		+= -I. -I./include -I./ringbuf -I/usr/include -I./H264_camera -I./camera
+INC		+= -I. -I./include -I./ringbuf -I/usr/include -I./H264_camera -I./camera -I./raspberry
 INC		+= -I$(usageenviroment)/include -I$(basicusage)/include -I$(livemedia)/include -I$(groupsock)/include
 
 LDFLAGS += -L./lib $(LIBSDIR) -lx264 -lliveMedia -lBasicUsageEnvironment -lgroupsock -lUsageEnvironment

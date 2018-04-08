@@ -176,7 +176,7 @@ void *video_Encode_Thread(void *arg)
 			//printf("%s%d\n","-----------h264_length=",h264_length);
 			//写h264文件
 			//fwrite(h264_buf, h264_length, 1, h264_fp);
-#if SOFT_H264
+#if SOFT_H264 == 1
 			RingBuffer_write(rbuf,h264_buf,h264_length);
 #else
 			fwrite(h264_buf, h264_length, 1, h264_fp);
@@ -222,7 +222,7 @@ int Soft_FetchData::getData(void* fTo, unsigned fMaxSize, unsigned& fFrameSize, 
 		return 0;
 	}
 
-#if SOFT_H264
+#if SOFT_H264 == 1
 			
 	if(RingBuffer_empty(rbuf))
 	{

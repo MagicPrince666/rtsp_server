@@ -11,7 +11,7 @@
 #include <unistd.h> 
 
 
-#if SOFT_H264   //软件压缩H264
+#if SOFT_H264 == 1  //软件压缩H264
 
 #include "h264encoder.h"
 #include "video_capture.h"
@@ -20,8 +20,17 @@
 
 RingBuffer* rbuf;
 
-#else           //UVC输出H264
+#elif SOFT_H264 == 0          //UVC输出H264
+
 #include "H264_UVC_TestAP.h"
+
+#elif SOFT_H264 == 2
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include "raspberry.h"
+
 #endif
  
 
@@ -96,7 +105,7 @@ int main(int argc, char** argv) {
 
   
 
-#if SOFT_H264
+#if SOFT_H264 == 1
 
   rbuf = RingBuffer_create(DEFAULT_BUF_SIZE);
 
@@ -105,6 +114,25 @@ int main(int argc, char** argv) {
 
   if((pthread_create(&thread[1], NULL, video_Encode_Thread, NULL)) != 0)  
     printf("video_Encode_Thread create fail!\n");
+#elif SOFT_H264 == 2
+
+  remove(FIFO_NAME);
+  umask(0);
+  if (mkfifo (FIFO_NAME, S_IFIFO | 0666) == -1) {
+      perror("mkfifo error!");
+      exit(1);
+  }
+  //mknod(FIFO_NAME, S_IFIFO | 0666, 0);
+  // if((mkfifo(FIFO_NAME,O_CREAT|O_EXCL) < 0) && (errno != EEXIST))//创建有名管道,并设置相应的权限
+  //     printf("cannot create fifoserver \n");
+  
+  ras_fd = open(FIFO_NAME, O_RDONLY|O_NONBLOCK);
+  if(ras_fd <=0)
+  {
+    printf("open pipe "FIFO_NAME" error\n");
+    exit(1);
+  }
+	printf("open "FIFO_NAME"\n");
 
 #endif
 
@@ -145,9 +173,13 @@ int main(int argc, char** argv) {
     ServerMediaSession* sms
     = ServerMediaSession::createNew(*env, streamName, streamName,descriptionString);
 
-    pthread_create(&video_thread, NULL, video_thread_func,sms);                  
+#if 0
     //修改为自己实现的servermedia  H264LiveVideoServerMediaSubssion
-    //sms->addSubsession(H264LiveVideoServerMediaSubssion::createNew(*env, NULL)); 
+    sms->addSubsession(H264LiveVideoServerMediaSubssion::createNew(*env, NULL)); 
+#else
+    pthread_create(&video_thread, NULL, video_thread_func,sms); 
+#endif                 
+    
     
     rtspServer->addServerMediaSession(sms);
 
@@ -167,10 +199,11 @@ int main(int argc, char** argv) {
 
   env->taskScheduler().doEventLoop(); // does not return
 
-#if SOFT_H264
+#if SOFT_H264 == 1
   v4l2_close(cam);
   RingBuffer_destroy(rbuf);
 #endif
+
   return 0;
 }
 

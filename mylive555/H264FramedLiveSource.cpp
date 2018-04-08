@@ -1,22 +1,32 @@
 #include "H264FramedLiveSource.hh"
 
 
-#if SOFT_H264
+
+#if SOFT_H264 == 1
 
 #include "h264_camera.h"
 #include "ringbuffer.h"
 extern RingBuffer* rbuf;
 
-#else
+#elif SOFT_H264 == 0
 
 #include "H264_UVC_TestAP.h"
+
+#elif SOFT_H264 == 2
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include "raspberry.h"
+
+FILE *ras_fp = NULL;
 
 #endif
 
 bool emptyBufferFlag = true;
 
 H264FramedLiveSource::H264FramedLiveSource( UsageEnvironment& env)
-    : FramedSource(env),m_pToken(0)
+    : FramedSource(env)
 {
     m_can_get_nextframe = true;
 	m_is_queue_empty =false;
@@ -25,18 +35,26 @@ H264FramedLiveSource::H264FramedLiveSource( UsageEnvironment& env)
     gettimeofday(&sPresentationTime, NULL);
 
 	//启动获取视频数据线程
-#if SOFT_H264
+#if SOFT_H264 == 1
 
 	printf("Soft wave H264FramedLiveSource::H264FramedLiveSource \n");
 	Soft_FetchData::startCap();
 	emptyBufferFlag = true;
 
-#else
+#elif SOFT_H264 == 0
 
 	printf("Hart wave H264FramedLiveSource::H264FramedLiveSource \n");
 	FetchData::startCap();
 	emptyBufferFlag = true;
 	//FetchData::setSource(this);
+
+#elif SOFT_H264 == 2
+	
+	system("raspivid -t 0 -w 1920 -h 1080 -fps 30 -b 2000000 -n -o "FIFO_NAME" &");
+	//system("raspivid -t 0 -w 1280 -h 720 -fps 30 -b 2000000 -n -o "FIFO_NAME" &");
+	printf("raspivid -t 0 -w 1920 -h 1080 -fps 30 -b 2000000 -n -o "FIFO_NAME" &\n");
+	//if(ras_fp == NULL)
+	//	ras_fp = fopen("rec_h264.h264","w");
 
 #endif
 
@@ -46,13 +64,18 @@ H264FramedLiveSource::H264FramedLiveSource( UsageEnvironment& env)
 
 H264FramedLiveSource::~H264FramedLiveSource()
 {
-    printf("close stream\n");
     printf("H264FramedLiveSource::~H264FramedLiveSource() \n");
 
-#if SOFT_H264
+#if SOFT_H264 == 1
 	Soft_FetchData::stopCap();
-#else
+#elif SOFT_H264 == 0
 	FetchData::stopCap();
+#elif SOFT_H264 == 2
+
+	system("killall -9 raspivid");
+	printf("killall -9 raspivid\n");
+	//rasclose(ras_fd);
+	
 #endif
 
 	envir().taskScheduler().deleteEventTrigger(m_eventTriggerId);
@@ -87,7 +110,7 @@ void H264FramedLiveSource::updateTime(struct timeval& p)
     sPresentationTime.tv_sec = p.tv_sec;
 	sPresentationTime.tv_usec = p.tv_usec;
 
-	int i = timeval_substract(&sdiff, &now, &sPresentationTime);
+	timeval_substract(&sdiff, &now, &sPresentationTime);
 	printf("DIFF:%d \n",sdiff);
 
     sbTimeUpdate = true;
@@ -105,13 +128,36 @@ void H264FramedLiveSource::doUpdateDataNotify()
 	afterGetting(this);
 }
 
+#if SOFT_H264 == 2
+
+struct timeval tv;  
+fd_set rfds;
+int retval=0;
+
+#endif
+
 void H264FramedLiveSource::GetFrameData()
 {
 	
-#if SOFT_H264
+#if SOFT_H264 == 1
 	unsigned len = Soft_FetchData::getData(fTo,fMaxSize, fFrameSize, fNumTruncatedBytes);
-#else
+#elif SOFT_H264 == 0
 	unsigned len = FetchData::getData(fTo,fMaxSize, fFrameSize, fNumTruncatedBytes);
+#elif SOFT_H264 == 2
+
+	//fFrameSize = read(ras_fd,fTo,fMaxSize); 
+
+	tv.tv_sec = 0;
+    tv.tv_usec = 33000;
+	FD_ZERO(&rfds);
+	FD_SET(ras_fd, &rfds);
+	retval = select(ras_fd + 1, &rfds, NULL, NULL, &tv);
+	if(retval)
+	{  
+		fFrameSize = read(ras_fd,fTo,fMaxSize); 
+		//fwrite(fTo,fFrameSize,1,ras_fp);
+	}
+	
 #endif
 
 	gettimeofday(&fPresentationTime, NULL);
@@ -124,7 +170,6 @@ void H264FramedLiveSource::GetFrameData()
 	}
 			
 } 
-
 
 void H264FramedLiveSource::doGetNextFrame()
 {
