@@ -54,7 +54,7 @@ H264FramedLiveSource::H264FramedLiveSource( UsageEnvironment& env)
 	//system("raspivid -t 0 -w 1280 -h 720 -fps 30 -b 2000000 -n -o "FIFO_NAME" &");
 	printf("raspivid -t 0 -w 1920 -h 1080 -fps 30 -b 2000000 -n -o "FIFO_NAME" &\n");
 	//if(ras_fp == NULL)
-	//	ras_fp = fopen("rec_h264.h264","w");
+	//	ras_fp = fopen("rec_h264.264","w");
 
 #endif
 

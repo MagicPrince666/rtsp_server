@@ -16,4 +16,3 @@ mylive555/objs/*.o
 mylive555/lib/libx264.a
 mylive555/RTSPServer
 mylive555/*.264
-mylive555/*.h264
