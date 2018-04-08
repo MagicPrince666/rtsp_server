@@ -148,7 +148,7 @@ void H264FramedLiveSource::GetFrameData()
 	//fFrameSize = read(ras_fd,fTo,fMaxSize); 
 
 	tv.tv_sec = 0;
-    tv.tv_usec = 33000;
+	tv.tv_usec = 33000;
 	FD_ZERO(&rfds);
 	FD_SET(ras_fd, &rfds);
 	retval = select(ras_fd + 1, &rfds, NULL, NULL, &tv);
