@@ -69,8 +69,8 @@ int RingBuffer_write(RingBuffer *buffer, uint8_t *data,unsigned int length)
 {
     unsigned int len = 0;
 
-    length = min(length, buffer->size - buffer->in + buffer->out);  
-    len    = min(length, buffer->size - (buffer->in & (buffer->size - 1)));
+    length = Min(length, buffer->size - buffer->in + buffer->out);  
+    len    = Min(length, buffer->size - (buffer->in & (buffer->size - 1)));
 
  
     memcpy(buffer->buf + (buffer->in & (buffer->size - 1)), data, len);
@@ -85,8 +85,8 @@ int RingBuffer_read(RingBuffer *buffer, uint8_t *target,unsigned int amount)
 {
     unsigned int len = 0;  
 
-    amount = min(amount, buffer->in - buffer->out);
-    len    = min(amount, buffer->size - (buffer->out & (buffer->size - 1)));
+    amount = Min(amount, buffer->in - buffer->out);
+    len    = Min(amount, buffer->size - (buffer->out & (buffer->size - 1)));
  
     memcpy(target, buffer->buf + (buffer->out & (buffer->size - 1)), len);
     memcpy(target + len, buffer->buf, amount - len);

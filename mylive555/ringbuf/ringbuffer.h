@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#define min(x, y) ((x) < (y) ? (x) : (y))
+#define Min(x, y) ((x) < (y) ? (x) : (y))
 #define ROUND_UP_2(num)  (((num)+1)&~1)
 #define DEFAULT_BUF_SIZE (2*1024*1024)
 
