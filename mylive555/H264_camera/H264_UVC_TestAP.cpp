@@ -276,7 +276,7 @@ int Init_264camera(void)
 	
 	int ret;
 	//在这里选择摄像头 0对应video0 1对应video1 依次类推
-	ret = open_device(2);//我的H264摄像头对应的是/dev/video2
+	ret = open_device(0);//我的H264摄像头对应的是/dev/video2
 
 	if(ret != -1)
 	{
