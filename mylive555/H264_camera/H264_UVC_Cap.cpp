@@ -359,12 +359,29 @@ int64_t H264UvcCap::CapVideo()
     return buf.bytesused;
 }
 
+int32_t H264UvcCap::getData(void *fTo, unsigned fMaxSize, unsigned &fFrameSize, unsigned &fNumTruncatedBytes)
+{
+    if (!capturing_) {
+        spdlog::warn("V4l2H264hData::getData s_b_running_ = false");
+        return 0;
+    }
+
+    if (RINGBUF.Empty()) {
+        usleep(100); //等待数据
+        fFrameSize         = 0;
+        fNumTruncatedBytes = 0;
+    }
+    fFrameSize = RINGBUF.Write((uint8_t *)fTo, fMaxSize);
+
+    fNumTruncatedBytes = 0;
+    return fFrameSize;
+}
+
 void H264UvcCap::StartCap()
 {
     capturing_ = true;
     MY_EPOLL.EpollAdd(video_->fd, std::bind(&H264UvcCap::CapVideo, this));
 }
-
 
 void H264UvcCap::StopCap()
 {

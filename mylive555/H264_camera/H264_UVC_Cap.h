@@ -12,6 +12,7 @@
 #include "h264_xu_ctrls.h"
 #include "v4l2uvc.h"
 #include <iostream>
+#include <thread>
 
 class H264UvcCap
 {
@@ -41,6 +42,16 @@ public:
      * @brief 停止
      */
     void StopCap();
+
+    /**
+     * @brief 给live555用
+     * @param fTo
+     * @param fMaxSize
+     * @param fFrameSize
+     * @param fNumTruncatedBytes
+     * @return int32_t
+     */
+    int32_t getData(void *fTo, unsigned fMaxSize, unsigned &fFrameSize, unsigned &fNumTruncatedBytes);
 
 private:
     /**

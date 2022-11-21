@@ -10,7 +10,7 @@ V4l2H264hData *g_softh264 = nullptr;
 
 #elif SOFT_H264 == 0
 #include "H264_UVC_Cap.h"
-H264UvcCap *h264_uvc_cap;
+H264UvcCap *g_h264_uvc_cap;
 
 #elif SOFT_H264 == 2
 
@@ -45,9 +45,9 @@ H264FramedLiveSource::H264FramedLiveSource( UsageEnvironment& env)
 
 #elif SOFT_H264 == 0
 
-	h264_uvc_cap = new H264UvcCap();
+	g_h264_uvc_cap = new H264UvcCap();
 	printf("Hart wave H264FramedLiveSource::H264FramedLiveSource \n");
-	h264_uvc_cap->StartCap();
+	g_h264_uvc_cap->StartCap();
 	emptyBufferFlag = true;
 	//FetchData::setSource(this);
 
@@ -72,7 +72,7 @@ H264FramedLiveSource::~H264FramedLiveSource()
 #if SOFT_H264 == 1
 	g_softh264->StopCap();
 #elif SOFT_H264 == 0
-	h264_uvc_cap->StopCap();
+	g_h264_uvc_cap->StopCap();
 #elif SOFT_H264 == 2
 
 	system("killall -9 raspivid");
@@ -137,7 +137,7 @@ void H264FramedLiveSource::GetFrameData()
 #if SOFT_H264 == 1
 	unsigned len = g_softh264->getData(fTo,fMaxSize, fFrameSize, fNumTruncatedBytes);
 #elif SOFT_H264 == 0
-	unsigned len = h264_uvc_cap->getData(fTo,fMaxSize, fFrameSize, fNumTruncatedBytes);
+	unsigned len = g_h264_uvc_cap->getData(fTo,fMaxSize, fFrameSize, fNumTruncatedBytes);
 #elif SOFT_H264 == 2
 
 	//fFrameSize = read(ras_fd,fTo,fMaxSize); 
