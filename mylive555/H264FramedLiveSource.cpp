@@ -3,14 +3,14 @@
 
 
 #if SOFT_H264 == 1
-
 #include "h264_camera.h"
 #include "ringbuffer.h"
-extern RingBuffer* rbuf;
+
+V4l2H264hData *g_softh264 = nullptr;
 
 #elif SOFT_H264 == 0
-
-#include "H264_UVC_TestAP.h"
+#include "H264_UVC_Cap.h"
+H264UvcCap *h264_uvc_cap;
 
 #elif SOFT_H264 == 2
 
@@ -36,15 +36,18 @@ H264FramedLiveSource::H264FramedLiveSource( UsageEnvironment& env)
 
 	//启动获取视频数据线程
 #if SOFT_H264 == 1
-
+	std::string dev = "/dev/video0";
+	g_softh264 = new V4l2H264hData(dev);
+	g_softh264->Init();
 	printf("Soft wave H264FramedLiveSource::H264FramedLiveSource \n");
-	Soft_FetchData::startCap();
+	g_softh264->StartCap();
 	emptyBufferFlag = true;
 
 #elif SOFT_H264 == 0
 
+	h264_uvc_cap = new H264UvcCap();
 	printf("Hart wave H264FramedLiveSource::H264FramedLiveSource \n");
-	FetchData::startCap();
+	h264_uvc_cap->StartCap();
 	emptyBufferFlag = true;
 	//FetchData::setSource(this);
 
@@ -67,9 +70,9 @@ H264FramedLiveSource::~H264FramedLiveSource()
     printf("H264FramedLiveSource::~H264FramedLiveSource() \n");
 
 #if SOFT_H264 == 1
-	Soft_FetchData::stopCap();
+	g_softh264->StopCap();
 #elif SOFT_H264 == 0
-	FetchData::stopCap();
+	h264_uvc_cap->StopCap();
 #elif SOFT_H264 == 2
 
 	system("killall -9 raspivid");
@@ -128,21 +131,13 @@ void H264FramedLiveSource::doUpdateDataNotify()
 	afterGetting(this);
 }
 
-#if SOFT_H264 == 2
-
-struct timeval tv;  
-fd_set rfds;
-int retval=0;
-
-#endif
-
 void H264FramedLiveSource::GetFrameData()
 {
 	
 #if SOFT_H264 == 1
-	unsigned len = Soft_FetchData::getData(fTo,fMaxSize, fFrameSize, fNumTruncatedBytes);
+	unsigned len = g_softh264->getData(fTo,fMaxSize, fFrameSize, fNumTruncatedBytes);
 #elif SOFT_H264 == 0
-	unsigned len = FetchData::getData(fTo,fMaxSize, fFrameSize, fNumTruncatedBytes);
+	unsigned len = h264_uvc_cap->getData(fTo,fMaxSize, fFrameSize, fNumTruncatedBytes);
 #elif SOFT_H264 == 2
 
 	//fFrameSize = read(ras_fd,fTo,fMaxSize); 

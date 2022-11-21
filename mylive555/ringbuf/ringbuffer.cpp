@@ -1,97 +1,111 @@
 #include "ringbuffer.h"
-#include <stdio.h>
+#include <new>
+
 #include <stdlib.h>
 #include <string.h>
 
-
-
-RingBuffer *RingBuffer_create(int length)
+RingBuff::RingBuff(uint64_t rbuf) : buffer_size_(rbuf)
 {
-    unsigned int size = ROUND_UP_2(length);
+    Create(buffer_size_);
+}
 
-    if ( (size&(size-1)) || (size < DEFAULT_BUF_SIZE) )
-    {
+RingBuff::~RingBuff()
+{
+    Destroy();
+}
+
+bool RingBuff::Create(uint64_t length)
+{
+    uint64_t size = ROUND_UP_2(length);
+
+    if ((size & (size - 1)) || (size < DEFAULT_BUF_SIZE)) {
         size = DEFAULT_BUF_SIZE;
     }
- 
-    RingBuffer *buffer = (RingBuffer *)malloc(sizeof(RingBuffer));  
-    if (!buffer) 
-    {
-        return NULL; 
+
+    p_buffer_ = new (std::nothrow) RingBuffer;
+    if (!p_buffer_) {
+        return false;
     }
-    memset(buffer, 0, sizeof(RingBuffer)); 
- 
-    buffer->size = size;  
-    buffer->in   = 0;
-    buffer->out  = 0;  
- 
-    buffer->buf = (unsigned char *)malloc(size);  
-    if (!buffer->buf)
-    {
-        free(buffer);
-        return NULL;
+    memset(p_buffer_, 0, sizeof(RingBuffer));
+
+    p_buffer_->size = size;
+    p_buffer_->in   = 0;
+    p_buffer_->out  = 0;
+
+    p_buffer_->buf = new (std::nothrow) uint8_t[size];
+    if (!p_buffer_->buf) {
+        delete p_buffer_;
+        return false;
     }
 
-    memset(buffer->buf, 0, size);
+    memset(p_buffer_->buf, 0, size);
 
-    //printf("ringbuffer init success\n");
-    return buffer;
+    return true;
 }
 
-void RingBuffer_destroy(RingBuffer *buffer)
+void RingBuff::Destroy()
 {
-    if(buffer) {
-        free(buffer->buf);
-        free(buffer);
+    if (p_buffer_) {
+        delete[] p_buffer_->buf;
+        delete p_buffer_;
     }
 }
 
-int RingBuffer_Reset(RingBuffer *buffer)
+bool RingBuff::Reset()
 {
-    if (buffer == NULL)
-    {
-        return -1;
+    if (p_buffer_ == nullptr) {
+        return false;
     }
-     
-    buffer->in   = 0;
-    buffer->out  = 0;
-    memset(buffer->buf, 0, buffer->size);
 
-    return 0;
+    p_buffer_->in  = 0;
+    p_buffer_->out = 0;
+    memset(p_buffer_->buf, 0, p_buffer_->size);
+
+    return true;
 }
 
-int RingBuffer_empty(RingBuffer *buffer)
+uint64_t RingBuff::Size()
 {
-    return buffer->in == buffer->out;
+    uint64_t len = 0;
+    if(p_buffer_->in >= p_buffer_->out) {
+        len = p_buffer_->in - p_buffer_->out;
+    } else {
+        len =buffer_size_ - p_buffer_->out + p_buffer_->in;
+    }
+    return len;
 }
 
-int RingBuffer_write(RingBuffer *buffer, uint8_t *data,unsigned int length)
+bool RingBuff::Empty()
 {
-    unsigned int len = 0;
+    return p_buffer_->in == p_buffer_->out;
+}
 
-    length = Min(length, buffer->size - buffer->in + buffer->out);  
-    len    = Min(length, buffer->size - (buffer->in & (buffer->size - 1)));
+uint64_t RingBuff::Write(uint8_t *data, uint64_t length)
+{
+    uint64_t len = 0;
 
- 
-    memcpy(buffer->buf + (buffer->in & (buffer->size - 1)), data, len);
-    memcpy(buffer->buf, data + len, length - len);
- 
-    buffer->in += length;
- 
+    length = Min(length, p_buffer_->size - p_buffer_->in + p_buffer_->out);
+    len    = Min(length, p_buffer_->size - (p_buffer_->in & (p_buffer_->size - 1)));
+
+    memcpy(p_buffer_->buf + (p_buffer_->in & (p_buffer_->size - 1)), data, len);
+    memcpy(p_buffer_->buf, data + len, length - len);
+
+    p_buffer_->in += length;
+
     return length;
 }
 
-int RingBuffer_read(RingBuffer *buffer, uint8_t *target,unsigned int amount)
+uint64_t RingBuff::Read(uint8_t *target, uint64_t amount)
 {
-    unsigned int len = 0;  
+    uint64_t len = 0;
 
-    amount = Min(amount, buffer->in - buffer->out);
-    len    = Min(amount, buffer->size - (buffer->out & (buffer->size - 1)));
- 
-    memcpy(target, buffer->buf + (buffer->out & (buffer->size - 1)), len);
-    memcpy(target + len, buffer->buf, amount - len);
- 
-    buffer->out += amount;
- 
+    amount = Min(amount, p_buffer_->in - p_buffer_->out);
+    len    = Min(amount, p_buffer_->size - (p_buffer_->out & (p_buffer_->size - 1)));
+
+    memcpy(target, p_buffer_->buf + (p_buffer_->out & (p_buffer_->size - 1)), len);
+    memcpy(target + len, p_buffer_->buf, amount - len);
+
+    p_buffer_->out += amount;
+
     return amount;
 }

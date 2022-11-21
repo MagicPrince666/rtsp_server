@@ -1,87 +1,116 @@
-#ifndef _VIDEO_CAPTURE_H
-#define _VIDEO_CAPTURE_H
+/**
+ * @file video_capture.h
+ * @author 黄李全 (846863428@qq.com)
+ * @brief 获取v4l2视频
+ * @version 0.1
+ * @date 2022-11-18
+ * @copyright Copyright (c) {2021} 个人版权所有
+ */
+#pragma once
 
 #include <linux/videodev2.h>
 #include <pthread.h>
 #include <stdint.h>
+#include <iostream>
 
+#include "h264encoder.h"
 
-#define BUF_SIZE 614400
-/*C270 YUV 4:2:2 frame size(char)
-160*120*2  = 38400
-176*144*2  = 50688 
-320*176*2  = 112640
-320*240*2  = 153600
-352*288*2  = 202752
-432*240*2  = 207360
-544*288*2  = 313344
-640*360*2  = 460800
-640*480*2  = 614400
-752*416*2  = 625664
-800*448*2  = 716800
-800*600*2  = 960000
-864*480*2  = 829440
-960*544*2  = 1044480
-960*720*2  = 1382400
-1024*576*2 = 1179648
-1184*656*2 = 1553408
-*/
-//#define FIFO_NAME "/tmp/my_video.h264"
-
-struct buffer {
-	void *start;
-	size_t length;
-};
-struct cam_data{
-
-	unsigned char  cam_mbuf[BUF_SIZE] ;	/*缓存区数组5242880=5MB//缓存区数组10485760=10MB//缓存区数组1536000=1.46484375MB,10f*/
-	int wpos; 
-	int rpos;	/*写与读的位置*/
-	pthread_cond_t captureOK;/*线程采集满一个缓冲区时的标志*/
-	pthread_cond_t encodeOK;/*线程编码完一个缓冲区的标志*/
-	pthread_mutex_t lock;/*互斥锁*/
-                 };
-
-struct camera {
-	char *device_name;
-	int fd;
-	int width;
-	int height;
-	int fps;
-	int display_depth;
-	int image_size;
-	int frame_number;
-	struct v4l2_capability v4l2_cap;
-	struct v4l2_cropcap v4l2_cropcap;
-	struct v4l2_format v4l2_fmt;
-	struct v4l2_crop crop;
-	struct buffer *buffers;
+struct Buffer {
+    void *start;
+    size_t length;
 };
 
-void errno_exit(const char *s);
+struct Camera {
+    int32_t fd = -1;
+    int32_t width = 640;
+    int32_t height = 480;
+    int32_t fps = 15;
+    int32_t display_depth;
+    int32_t image_size;
+    int32_t frame_number;
+    struct v4l2_capability v4l2_cap;
+    struct v4l2_cropcap v4l2_cropcap;
+    struct v4l2_format v4l2_fmt;
+    struct v4l2_crop crop;
+    struct Buffer *buffers;
+};
 
-//int xioctl(int fd, int request, void *arg);
+class V4l2VideoCapture
+{
+public:
+    V4l2VideoCapture(std::string dev = "/dev/video0");
+    ~V4l2VideoCapture();
 
-void open_camera(struct camera *cam);
-void close_camera(struct camera *cam);
+    /**
+     * @brief 初始化
+     */
+    bool Init();
 
-int read_and_encode_frame(struct camera *cam);
+    /**
+     * @brief 获取一帧数据
+     * @param data 拷贝到此地址
+     * @param offset 地址偏移
+     * @param maxsize 最大长度
+     * @return uint64_t 
+     */
+    uint64_t BuffOneFrame(uint8_t* data);
 
-void start_capturing(struct camera *cam);
-void stop_capturing(struct camera *cam);
+    /**
+     * 获取帧长度
+    */
+    int32_t GetFrameLength();
 
-void init_camera(struct camera *cam);
-void uninit_camera(struct camera *cam);
+    /**
+     * 获取视频格式
+    */
+    struct Camera* GetFormat();
 
-void init_mmap(struct camera *cam);
+private:
+    /**
+     * @brief 关闭v4l2资源
+     */
+    bool V4l2Close();
 
-void v4l2_init(struct camera *cam);
-void v4l2_close(struct camera *cam);
+    /**
+     * @brief 打开摄像头
+     */
+    bool OpenCamera();
 
-int convert_yuv_to_rgb_buffer(unsigned char *yuv, unsigned char *rgb, unsigned int width, unsigned int height);
+    /**
+     * @brief 关闭摄像头
+     */
+    bool CloseCamera();
 
-int buffOneFrame(struct cam_data *tmp , struct camera *cam );
-void encode_frame(uint8_t *yuv_frame, size_t yuv_length);
+    /**
+     * @brief 开始录制
+     */
+    bool StartCapturing();
 
-#endif
+    /**
+     * @brief 停止录制
+     */
+    bool StopCapturing();
 
+    /**
+     * @brief 初始化摄像头参数
+     */
+    bool InitCamera();
+
+    /**
+     * @brief 退出设置
+     */
+    bool UninitCamera();
+
+    /**
+     * @brief 初始化mmap
+     */
+    bool InitMmap();
+
+    void ErrnoExit(const char *s);
+    int32_t xioctl(int32_t fd, int32_t request, void *arg);
+
+private:
+    std::string v4l2_device_;
+    uint32_t n_buffers_ = 0;
+    struct Camera camera_;
+};

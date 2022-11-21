@@ -10,21 +10,7 @@
 #include <execinfo.h>
 #include <unistd.h> 
 
-
-#if SOFT_H264 == 1  //软件压缩H264
-
-#include "h264encoder.h"
-#include "video_capture.h"
-#include "h264_camera.h"
-#include "ringbuffer.h"
-
-RingBuffer* rbuf;
-
-#elif SOFT_H264 == 0          //UVC输出H264
-
-#include "H264_UVC_TestAP.h"
-
-#elif SOFT_H264 == 2
+#if SOFT_H264 == 2
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -97,24 +83,12 @@ void* video_thread_func(void* param)
 }
 
 int main(int argc, char** argv) {
-
   signal(SIGPIPE, _signal_handler);    // SIGPIPE，管道破裂。
   signal(SIGSEGV, _signal_handler);    // SIGSEGV，非法内存访问
   signal(SIGFPE, _signal_handler);     // SIGFPE，数学相关的异常，如被0除，浮点溢出，等等
   signal(SIGABRT, _signal_handler);    // SIGABRT，由调用abort函数产生，进程非正常退出
-
   
-
-#if SOFT_H264 == 1
-
-  rbuf = RingBuffer_create(DEFAULT_BUF_SIZE);
-
-  if((pthread_create(&thread[0], NULL, video_Capture_Thread, NULL)) != 0)   
-    printf("video_Capture_Thread create fail!\n");
-
-  if((pthread_create(&thread[1], NULL, video_Encode_Thread, NULL)) != 0)  
-    printf("video_Encode_Thread create fail!\n");
-#elif SOFT_H264 == 2
+#if SOFT_H264 == 2
 
   remove(FIFO_NAME);
   umask(0);
@@ -198,11 +172,6 @@ int main(int argc, char** argv) {
   }
 
   env->taskScheduler().doEventLoop(); // does not return
-
-#if SOFT_H264 == 1
-  v4l2_close(cam);
-  RingBuffer_destroy(rbuf);
-#endif
 
   return 0;
 }
