@@ -40,7 +40,7 @@
 
 V4l2H264hData::V4l2H264hData(std::string dev) : v4l2_device_(dev)
 {
-    s_b_running_    = true;
+    b_running_    = false;
     s_pause_        = false;
     h264_fp_        = nullptr;
 }
@@ -52,6 +52,7 @@ V4l2H264hData::~V4l2H264hData()
     }
 
     CloseFile();
+    StopCap();
 
     if (p_capture_) {
         delete p_capture_;
@@ -70,11 +71,8 @@ void V4l2H264hData::Init()
 {
     p_capture_ = new (std::nothrow) V4l2VideoCapture(v4l2_device_.c_str());
     p_capture_->Init(); // 初始化摄像头
-
     video_format_ = p_capture_->GetFormat();
-
     camera_buf_ = new (std::nothrow) uint8_t[p_capture_->GetFrameLength()];
-
     encoder_ = new (std::nothrow) H264Encoder(video_format_->width, video_format_->height);
     encoder_->Init();
 
@@ -84,14 +82,17 @@ void V4l2H264hData::Init()
     h264_buf_ = new (std::nothrow) uint8_t[p_capture_->GetFrameLength()];
 #endif
 
-    InitFile(); // 存储264文件
+    InitFile(false); // 存储264文件
 
     video_encode_thread_ = std::thread([](V4l2H264hData *p_this) { p_this->VideoEncodeThread(); }, this);
 }
 
 void V4l2H264hData::RecordAndEncode()
 {
-    int32_t len = p_capture_->BuffOneFrame(camera_buf_);
+    int32_t len = 0;
+    if(p_capture_) {
+        len = p_capture_->BuffOneFrame(camera_buf_);
+    }
 
     if(len <= 0) {
         return;
@@ -125,7 +126,7 @@ void V4l2H264hData::RecordAndEncode()
         uint64_t length = 0;
         encoder_->CompressFrame(FRAME_TYPE_AUTO, camera_buf_, h264_buf_, length);
         if (length > 0) {
-            // RINGBUF.Write(h264_buf_, h264_buf.length);
+            RINGBUF.Write(h264_buf_, length);
             if (h264_fp_) {
                 fwrite(h264_buf_, length, 1, h264_fp_);
             }
@@ -138,24 +139,23 @@ void V4l2H264hData::RecordAndEncode()
 
 void V4l2H264hData::VideoEncodeThread()
 {
-    // 设置缓冲区
-    MY_EPOLL.EpollAdd(video_format_->fd, std::bind(&V4l2H264hData::RecordAndEncode, this));
+    StartCap();
     MY_EPOLL.EpollLoop();
 }
 
 int32_t V4l2H264hData::getData(void *fTo, unsigned fMaxSize, unsigned &fFrameSize, unsigned &fNumTruncatedBytes)
 {
-    if (!s_b_running_) {
-        spdlog::warn("V4l2H264hData::getData s_b_running_ = false");
+    if (!b_running_) {
+        spdlog::warn("V4l2H264hData::getData b_running_ = false");
         return 0;
     }
 
     if (RINGBUF.Empty()) {
-        usleep(100); //等待数据
         fFrameSize         = 0;
         fNumTruncatedBytes = 0;
+        return 0;
     }
-    fFrameSize = RINGBUF.Write((uint8_t *)fTo, fMaxSize);
+    fFrameSize = RINGBUF.Read((uint8_t *)fTo, fMaxSize);
 
     fNumTruncatedBytes = 0;
     return fFrameSize;
@@ -163,14 +163,20 @@ int32_t V4l2H264hData::getData(void *fTo, unsigned fMaxSize, unsigned &fFrameSiz
 
 void V4l2H264hData::StartCap()
 {
-    s_b_running_ = true;
-    spdlog::info("FetchData StartCap");
+    if(!b_running_) {
+        MY_EPOLL.EpollAdd(video_format_->fd, std::bind(&V4l2H264hData::RecordAndEncode, this));
+    }
+    b_running_ = true;
+    spdlog::info("V4l2H264hData StartCap");
 }
 
 void V4l2H264hData::StopCap()
 {
-    s_b_running_ = false;
-    spdlog::info("FetchData StopCap");
+    if(b_running_) {
+        MY_EPOLL.EpollDel(video_format_->fd);
+    }
+    b_running_ = false;
+    spdlog::info("V4l2H264hData StopCap");
 }
 
 inline bool FileExists(const std::string& name) {
@@ -178,8 +184,12 @@ inline bool FileExists(const std::string& name) {
   return (stat (name.c_str(), &buffer) == 0); 
 }
 
-void V4l2H264hData::InitFile()
+void V4l2H264hData::InitFile(bool yes)
 {
+    if(!yes) {
+        return;
+    }
+
     std::string h264_file_name = getCurrentTime8() + ".h264";
     if(FileExists(h264_file_name)) {
         remove(h264_file_name.c_str());

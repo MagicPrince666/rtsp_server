@@ -64,7 +64,7 @@ private:
     /**
      * @brief 打开文件
      */
-    void InitFile();
+    void InitFile(bool yes);
 
     /**
      * 关闭文件
@@ -112,7 +112,7 @@ private:
 
     V4l2VideoCapture *p_capture_;
     H264Encoder *encoder_;
-    bool s_b_running_;
+    bool b_running_;
     bool s_pause_;
 
     uint8_t *camera_buf_;

@@ -40,16 +40,14 @@ H264FramedLiveSource::H264FramedLiveSource( UsageEnvironment& env)
 	g_softh264 = new V4l2H264hData(dev);
 	g_softh264->Init();
 	printf("Soft wave H264FramedLiveSource::H264FramedLiveSource \n");
-	g_softh264->StartCap();
 	emptyBufferFlag = true;
 
 #elif SOFT_H264 == 0
 
 	g_h264_uvc_cap = new H264UvcCap();
+	g_h264_uvc_cap->Init();
 	printf("Hart wave H264FramedLiveSource::H264FramedLiveSource \n");
-	g_h264_uvc_cap->StartCap();
 	emptyBufferFlag = true;
-	//FetchData::setSource(this);
 
 #elif SOFT_H264 == 2
 	
@@ -70,9 +68,9 @@ H264FramedLiveSource::~H264FramedLiveSource()
     printf("H264FramedLiveSource::~H264FramedLiveSource() \n");
 
 #if SOFT_H264 == 1
-	g_softh264->StopCap();
+	delete g_softh264;
 #elif SOFT_H264 == 0
-	g_h264_uvc_cap->StopCap();
+	delete g_h264_uvc_cap;
 #elif SOFT_H264 == 2
 
 	system("killall -9 raspivid");

@@ -118,7 +118,7 @@ uint64_t V4l2VideoCapture::BuffOneFrame(uint8_t *data)
     return len;
 }
 
-bool V4l2VideoCapture::StartCapturing()
+bool V4l2VideoCapture::StartPreviewing()
 {
     enum v4l2_buf_type type;
 
@@ -144,7 +144,7 @@ bool V4l2VideoCapture::StartCapturing()
     return true;
 }
 
-bool V4l2VideoCapture::StopCapturing()
+bool V4l2VideoCapture::StopPreviewing()
 {
     enum v4l2_buf_type type;
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -289,14 +289,14 @@ bool V4l2VideoCapture::Init()
     bool ret = false;
     ret |= OpenCamera();
     ret |= InitCamera();
-    ret |= StartCapturing();
+    ret |= StartPreviewing();
     return ret;
 }
 
 bool V4l2VideoCapture::V4l2Close()
 {
     bool ret = false;
-    ret |= StopCapturing();
+    ret |= StopPreviewing();
     ret |= UninitCamera();
     ret |= CloseCamera();
     return ret;

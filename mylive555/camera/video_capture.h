@@ -84,12 +84,12 @@ private:
     /**
      * @brief 开始录制
      */
-    bool StartCapturing();
+    bool StartPreviewing();
 
     /**
      * @brief 停止录制
      */
-    bool StopCapturing();
+    bool StopPreviewing();
 
     /**
      * @brief 初始化摄像头参数

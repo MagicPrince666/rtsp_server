@@ -55,7 +55,7 @@ H264UvcCap::~H264UvcCap()
     if (rec_fp1_) {
         fclose(rec_fp1_);
     }
-
+    StopCap();
     if (video_) {
         if (video_->fd) {
             close(video_->fd);
@@ -249,7 +249,7 @@ int H264UvcCap::InitDevice(int width, int height, int format)
     return InitMmap();
 }
 
-int H264UvcCap::StartPreviewing(void)
+int H264UvcCap::StartPreviewing()
 {
     uint32_t i;
     enum v4l2_buf_type type;
@@ -262,16 +262,28 @@ int H264UvcCap::StartPreviewing(void)
         buf.memory = V4L2_MEMORY_MMAP;
         buf.index  = i;
 
-        if (-1 == xioctl(video_->fd, VIDIOC_QBUF, &buf))
+        if (-1 == xioctl(video_->fd, VIDIOC_QBUF, &buf)) {
             return errnoexit("VIDIOC_QBUF");
+        }
     }
 
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
-    if (-1 == xioctl(video_->fd, VIDIOC_STREAMON, &type))
+    if (-1 == xioctl(video_->fd, VIDIOC_STREAMON, &type)) {
         return errnoexit("VIDIOC_STREAMON");
+    }
 
     return 0;
+}
+
+bool H264UvcCap::StopPreviewing()
+{
+    enum v4l2_buf_type type;
+    type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    if (-1 == xioctl(video_->fd, VIDIOC_STREAMOFF, &type)) {
+        errnoexit("VIDIOC_STREAMOFF");
+    }
+    return true;
 }
 
 bool H264UvcCap::Init(void)
@@ -288,9 +300,7 @@ bool H264UvcCap::Init(void)
         return false;
     }
 
-    if (StartPreviewing() < 0) {
-        return false;
-    }
+    StartPreviewing();
 
     struct tm *tdate;
     time_t curdate;
@@ -321,7 +331,7 @@ bool H264UvcCap::Init(void)
         }
     }
 
-    CreateFile(true);
+    CreateFile(false);
 
     cat_h264_thread_ = std::thread([](H264UvcCap *p_this) { p_this->VideoCapThread(); }, this);
     return true;
@@ -347,7 +357,7 @@ int64_t H264UvcCap::CapVideo()
 
     // spdlog::info("Get buffer size = {}", buf.bytesused);
 
-    // RINGBUF.Write((uint8_t *)buffers_[buf.index].start, buf.bytesused);
+    RINGBUF.Write((uint8_t *)buffers_[buf.index].start, buf.bytesused);
 
     ret = ioctl(video_->fd, VIDIOC_QBUF, &buf);
 
@@ -362,16 +372,17 @@ int64_t H264UvcCap::CapVideo()
 int32_t H264UvcCap::getData(void *fTo, unsigned fMaxSize, unsigned &fFrameSize, unsigned &fNumTruncatedBytes)
 {
     if (!capturing_) {
-        spdlog::warn("V4l2H264hData::getData s_b_running_ = false");
+        spdlog::warn("V4l2H264hData::getData capturing_ = false");
         return 0;
     }
 
     if (RINGBUF.Empty()) {
-        usleep(100); //等待数据
         fFrameSize         = 0;
         fNumTruncatedBytes = 0;
+        return 0;
     }
-    fFrameSize = RINGBUF.Write((uint8_t *)fTo, fMaxSize);
+
+    fFrameSize = RINGBUF.Read((uint8_t *)fTo, fMaxSize);
 
     fNumTruncatedBytes = 0;
     return fFrameSize;
@@ -379,14 +390,18 @@ int32_t H264UvcCap::getData(void *fTo, unsigned fMaxSize, unsigned &fFrameSize, 
 
 void H264UvcCap::StartCap()
 {
+    if(!capturing_) {
+        MY_EPOLL.EpollAdd(video_->fd, std::bind(&H264UvcCap::CapVideo, this));
+    }
     capturing_ = true;
-    MY_EPOLL.EpollAdd(video_->fd, std::bind(&H264UvcCap::CapVideo, this));
 }
 
 void H264UvcCap::StopCap()
 {
+    if(capturing_) {
+        MY_EPOLL.EpollDel(video_->fd);
+    }
     capturing_ = false;
-    MY_EPOLL.EpollDel(video_->fd);
 }
 
 void H264UvcCap::VideoCapThread() {

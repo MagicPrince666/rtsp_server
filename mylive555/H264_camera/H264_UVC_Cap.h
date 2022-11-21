@@ -17,7 +17,7 @@
 class H264UvcCap
 {
 public:
-    H264UvcCap(std::string dev = "/dev/video0", uint32_t width  = 1280, uint32_t height = 720);
+    H264UvcCap(std::string dev = "/dev/video2", uint32_t width  = 1280, uint32_t height = 720);
     ~H264UvcCap();
 
     /**
@@ -88,7 +88,14 @@ private:
      * @brief 开启预览
      * @return int 
      */
-    int StartPreviewing(void);
+    int StartPreviewing();
+
+    /**
+     * @brief 关闭预览
+     * @return true 
+     * @return false 
+     */
+    bool StopPreviewing();
 
     /**
      * @brief 抓取H264视频
