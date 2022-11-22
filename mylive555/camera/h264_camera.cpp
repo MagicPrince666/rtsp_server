@@ -58,6 +58,10 @@ V4l2H264hData::~V4l2H264hData()
         delete p_capture_;
     }
 
+    if (encoder_) {
+        delete encoder_;
+    }
+
     if(h264_buf_) {
         delete[] h264_buf_;
     }
@@ -85,6 +89,8 @@ void V4l2H264hData::Init()
     InitFile(false); // 存储264文件
 
     video_encode_thread_ = std::thread([](V4l2H264hData *p_this) { p_this->VideoEncodeThread(); }, this);
+
+    spdlog::info("V4l2H264hData::{} done", __FUNCTION__);
 }
 
 void V4l2H264hData::RecordAndEncode()
@@ -156,6 +162,8 @@ int32_t V4l2H264hData::getData(void *fTo, unsigned fMaxSize, unsigned &fFrameSiz
         return 0;
     }
     fFrameSize = RINGBUF.Read((uint8_t *)fTo, fMaxSize);
+
+    // spdlog::info("fFrameSize {}", fFrameSize);
 
     fNumTruncatedBytes = 0;
     return fFrameSize;

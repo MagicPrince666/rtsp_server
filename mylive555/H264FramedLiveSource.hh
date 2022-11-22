@@ -3,36 +3,33 @@
 
 #include <FramedSource.hh>
 
-
-
 // #define SOFT_H264 0  //定义使用uvc H264
-#define SOFT_H264 1  //定义使用软件压缩H264
+#define SOFT_H264 1 //定义使用软件压缩H264
 //#define SOFT_H264 2  //定义树莓派压缩H264
-
 
 class H264FramedLiveSource : public FramedSource
 {
 public:
-    static H264FramedLiveSource* createNew(UsageEnvironment& env)
+    static H264FramedLiveSource *createNew(UsageEnvironment &env)
     {
-      return new H264FramedLiveSource(env);
+        return new H264FramedLiveSource(env);
     }
 
-    H264FramedLiveSource(UsageEnvironment& env);
+    H264FramedLiveSource(UsageEnvironment &env);
     virtual ~H264FramedLiveSource();
 
-    static void updateTime(struct timeval& p);
+    static void updateTime(struct timeval &p);
     void doUpdateStart();
-    static void updateDataNotify(void* d){((H264FramedLiveSource*)d)->doUpdateDataNotify();};
+    static void updateDataNotify(void *d) { ((H264FramedLiveSource *)d)->doUpdateDataNotify(); };
     void doUpdateDataNotify();
 
 protected:
     virtual void doGetNextFrame();
     virtual void doStopGettingFrames();
-    virtual unsigned int maxFrameSize() const; 
+    virtual unsigned int maxFrameSize() const;
 
     void GetFrameData();
-    
+
     static struct timeval sPresentationTime;
     static struct timeval sdiff;
 
