@@ -34,9 +34,9 @@ H264FramedLiveSource::H264FramedLiveSource(UsageEnvironment &env)
 
     //启动获取视频数据线程
 #if SOFT_H264 == 1
-    std::string dev = "/dev/video0";
-    g_softh264      = new V4l2H264hData(dev);
+    g_softh264      = new V4l2H264hData("/dev/video0");
     g_softh264->Init();
+    // g_softh264->SetSource(this);
 	printf("Soft wave H264FramedLiveSource::H264FramedLiveSource\n");
     emptyBufferFlag = true;
 
@@ -127,8 +127,14 @@ void H264FramedLiveSource::doUpdateDataNotify()
 void H264FramedLiveSource::GetFrameData()
 {
 #if SOFT_H264 == 1
-    unsigned len = g_softh264->getData(fTo, fMaxSize, fFrameSize, fNumTruncatedBytes);
-	printf("GetFrameData size:%d\n", len);
+    if (RINGBUF.Empty()) {
+        fFrameSize         = 0;
+        fNumTruncatedBytes = 0;
+    } else {
+        fFrameSize = RINGBUF.Read((uint8_t *)fTo, fMaxSize);
+        fNumTruncatedBytes = 0;
+    }
+	printf("GetFrameData size:%d\n", fFrameSize);
 #elif SOFT_H264 == 0
     unsigned len = g_h264_uvc_cap->getData(fTo, fMaxSize, fFrameSize, fNumTruncatedBytes);
 #elif SOFT_H264 == 2

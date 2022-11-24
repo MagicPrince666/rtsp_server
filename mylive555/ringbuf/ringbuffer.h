@@ -44,7 +44,7 @@ public:
      * @brief 获取buf长度
      * @return uint64_t 
      */
-    uint64_t Size();
+    uint64_t Length();
 
     /**
      * @brief 读取一段数据
@@ -75,6 +75,5 @@ private:
         uint64_t out;
     } RingBuffer;
 
-    uint64_t buffer_size_;
     RingBuffer *p_buffer_;
 };

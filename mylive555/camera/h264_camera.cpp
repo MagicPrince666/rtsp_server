@@ -43,6 +43,7 @@ V4l2H264hData::V4l2H264hData(std::string dev) : v4l2_device_(dev)
     b_running_ = false;
     s_pause_   = false;
     h264_fp_   = nullptr;
+    s_source_   = nullptr;
 }
 
 V4l2H264hData::~V4l2H264hData()
@@ -148,7 +149,7 @@ void V4l2H264hData::RecordAndEncode()
 void V4l2H264hData::VideoEncodeThread()
 {
     StartCap();
-    while(1) {
+    while (1) {
         if (!b_running_) {
             break;
         }
@@ -156,7 +157,7 @@ void V4l2H264hData::VideoEncodeThread()
     }
 }
 
-int32_t V4l2H264hData::getData(void *fTo, unsigned fMaxSize, unsigned &fFrameSize, unsigned &fNumTruncatedBytes)
+uint32_t V4l2H264hData::getData(void *fTo, uint32_t fMaxSize, uint32_t &fFrameSize, uint32_t &fNumTruncatedBytes)
 {
     if (!b_running_) {
         spdlog::warn("V4l2H264hData::getData b_running_ = false");
@@ -164,11 +165,11 @@ int32_t V4l2H264hData::getData(void *fTo, unsigned fMaxSize, unsigned &fFrameSiz
     }
 
     if (RINGBUF.Empty()) {
-        usleep(100); //等待数据
         fFrameSize         = 0;
         fNumTruncatedBytes = 0;
     }
     fFrameSize = RINGBUF.Read((uint8_t *)fTo, fMaxSize);
+    spdlog::info("fFrameSize {}", fFrameSize);
 
     fNumTruncatedBytes = 0;
     return fFrameSize;

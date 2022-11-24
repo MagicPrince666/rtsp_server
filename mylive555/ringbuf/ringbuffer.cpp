@@ -1,12 +1,13 @@
 #include "ringbuffer.h"
 #include <new>
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-RingBuff::RingBuff(uint64_t rbuf) : buffer_size_(rbuf)
+RingBuff::RingBuff(uint64_t rbuf)
 {
-    Create(buffer_size_);
+    Create(rbuf);
 }
 
 RingBuff::~RingBuff()
@@ -59,18 +60,18 @@ bool RingBuff::Reset()
 
     p_buffer_->in  = 0;
     p_buffer_->out = 0;
-    memset(p_buffer_->buf, 0, p_buffer_->size);
+    // memset(p_buffer_->buf, 0, p_buffer_->size);
 
     return true;
 }
 
-uint64_t RingBuff::Size()
+uint64_t RingBuff::Length()
 {
     uint64_t len = 0;
-    if(p_buffer_->in >= p_buffer_->out) {
+    if (p_buffer_->in >= p_buffer_->out) {
         len = p_buffer_->in - p_buffer_->out;
     } else {
-        len =buffer_size_ - p_buffer_->out + p_buffer_->in;
+        len = p_buffer_->size - p_buffer_->out + p_buffer_->in;
     }
     return len;
 }
@@ -82,7 +83,13 @@ bool RingBuff::Empty()
 
 uint64_t RingBuff::Write(uint8_t *data, uint64_t length)
 {
-    uint64_t len = 0;
+    uint64_t len  = 0;
+    uint64_t size = Length();
+    if (length > size) {
+        printf("buf size %ld\n", size);
+        Reset();
+        printf("Reset buf\n");
+    }
 
     length = Min(length, p_buffer_->size - p_buffer_->in + p_buffer_->out);
     len    = Min(length, p_buffer_->size - (p_buffer_->in & (p_buffer_->size - 1)));
