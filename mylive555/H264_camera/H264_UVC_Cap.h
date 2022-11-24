@@ -17,13 +17,13 @@
 class H264UvcCap
 {
 public:
-    H264UvcCap(std::string dev = "/dev/video2", uint32_t width  = 1280, uint32_t height = 720);
+    H264UvcCap(std::string dev = "/dev/video2", uint32_t width = 1280, uint32_t height = 720);
     ~H264UvcCap();
 
     /**
      * @brief 初始化摄像头
-     * @return true 
-     * @return false 
+     * @return true
+     * @return false
      */
     bool Init(void);
 
@@ -44,6 +44,13 @@ public:
     void StopCap();
 
     /**
+     * @brief 设置码率
+     * @param rate
+     * @return int32_t
+     */
+    int32_t BitRateSetting(int32_t rate);
+
+    /**
      * @brief 给live555用
      * @param fTo
      * @param fMaxSize
@@ -56,8 +63,8 @@ public:
 private:
     /**
      * @brief 打开v4l2设备
-     * @return true 
-     * @return false 
+     * @return true
+     * @return false
      */
     bool OpenDevice();
 
@@ -71,29 +78,36 @@ private:
 
     /**
      * @brief 初始化mmap
-     * @return int 
+     * @return int32_t
      */
-    int InitMmap(void);
+    int32_t InitMmap(void);
+
+    /**
+     * @brief 解除mmap映射
+     * @return true
+     * @return false
+     */
+    bool UninitMmap();
 
     /**
      * @brief 初始化设备参数
      * @param width 宽度
      * @param height 高度
      * @param format 格式
-     * @return int 
+     * @return int32_t
      */
-    int InitDevice(int width, int height, int format);
+    int32_t InitDevice(int32_t width, int32_t height, int32_t format);
 
     /**
      * @brief 开启预览
-     * @return int 
+     * @return int32_t
      */
-    int StartPreviewing();
+    int32_t StartPreviewing();
 
     /**
      * @brief 关闭预览
-     * @return true 
-     * @return false 
+     * @return true
+     * @return false
      */
     bool StopPreviewing();
 
@@ -109,6 +123,7 @@ private:
     };
     struct buffer *buffers_;
     struct vdIn *video_;
+    H264XuCtrls *h264_xu_ctrls_;
 
     bool capturing_;
     uint32_t n_buffers_;

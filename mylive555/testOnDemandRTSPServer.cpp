@@ -106,7 +106,7 @@ int main(int argc, char **argv)
 
     // A H.264 video elementary stream:
     {
-        char const *streamName = "stream";
+        char const *streamName = "live";
 
         ServerMediaSession *sms = ServerMediaSession::createNew(*env, streamName, streamName, descriptionString);
 
@@ -116,6 +116,7 @@ int main(int argc, char **argv)
 #else
         std::thread video_thread(video_thread_func, sms);
         video_thread.detach();
+        *env << "\n(Create video_thread_func.)\n";
 #endif
 
         rtspServer->addServerMediaSession(sms);

@@ -1,4 +1,5 @@
 #include <arpa/inet.h>
+#include <dirent.h>
 #include <fcntl.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -13,11 +14,10 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/vfs.h>
 #include <termios.h>
 #include <time.h>
 #include <unistd.h>
-#include <dirent.h>
-#include <sys/vfs.h>
 
 #include <chrono>
 #include <ctime>
@@ -40,9 +40,9 @@
 
 V4l2H264hData::V4l2H264hData(std::string dev) : v4l2_device_(dev)
 {
-    b_running_    = false;
-    s_pause_        = false;
-    h264_fp_        = nullptr;
+    b_running_ = false;
+    s_pause_   = false;
+    h264_fp_   = nullptr;
 }
 
 V4l2H264hData::~V4l2H264hData()
@@ -52,7 +52,6 @@ V4l2H264hData::~V4l2H264hData()
     }
 
     CloseFile();
-    StopCap();
 
     if (p_capture_) {
         delete p_capture_;
@@ -62,13 +61,15 @@ V4l2H264hData::~V4l2H264hData()
         delete encoder_;
     }
 
-    if(h264_buf_) {
+    if (h264_buf_) {
         delete[] h264_buf_;
     }
 
-    if(camera_buf_) {
+    if (camera_buf_) {
         delete[] camera_buf_;
     }
+
+    RINGBUF.Reset();
 }
 
 void V4l2H264hData::Init()
@@ -76,8 +77,8 @@ void V4l2H264hData::Init()
     p_capture_ = new (std::nothrow) V4l2VideoCapture(v4l2_device_.c_str());
     p_capture_->Init(); // 初始化摄像头
     video_format_ = p_capture_->GetFormat();
-    camera_buf_ = new (std::nothrow) uint8_t[p_capture_->GetFrameLength()];
-    encoder_ = new (std::nothrow) H264Encoder(video_format_->width, video_format_->height);
+    camera_buf_   = new (std::nothrow) uint8_t[p_capture_->GetFrameLength()];
+    encoder_      = new (std::nothrow) H264Encoder(video_format_->width, video_format_->height);
     encoder_->Init();
 
 #if USE_BUF_LIST
@@ -90,17 +91,18 @@ void V4l2H264hData::Init()
 
     video_encode_thread_ = std::thread([](V4l2H264hData *p_this) { p_this->VideoEncodeThread(); }, this);
 
-    spdlog::info("V4l2H264hData::{} done", __FUNCTION__);
+    spdlog::info("V4l2H264hData::Init()");
 }
 
 void V4l2H264hData::RecordAndEncode()
 {
     int32_t len = 0;
-    if(p_capture_) {
+    if (p_capture_) {
         len = p_capture_->BuffOneFrame(camera_buf_);
     }
 
-    if(len <= 0) {
+    if (len <= 0) {
+        StopCap();
         return;
     }
 
@@ -119,12 +121,12 @@ void V4l2H264hData::RecordAndEncode()
         spdlog::info("get size after encoder = {}", h264_buf.length);
     }
 
-    if(h264_buf.buf_ptr) {
+    if (h264_buf.buf_ptr) {
         delete[] h264_buf.buf_ptr;
     }
 #else
-    
-    if(video_format_->v4l2_fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_H264) {
+
+    if (video_format_->v4l2_fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_H264) {
         if (h264_fp_) {
             fwrite(camera_buf_, len, 1, h264_fp_);
         }
@@ -146,7 +148,12 @@ void V4l2H264hData::RecordAndEncode()
 void V4l2H264hData::VideoEncodeThread()
 {
     StartCap();
-    MY_EPOLL.EpollLoop();
+    while(1) {
+        if (!b_running_) {
+            break;
+        }
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
 }
 
 int32_t V4l2H264hData::getData(void *fTo, unsigned fMaxSize, unsigned &fFrameSize, unsigned &fNumTruncatedBytes)
@@ -157,13 +164,11 @@ int32_t V4l2H264hData::getData(void *fTo, unsigned fMaxSize, unsigned &fFrameSiz
     }
 
     if (RINGBUF.Empty()) {
+        usleep(100); //等待数据
         fFrameSize         = 0;
         fNumTruncatedBytes = 0;
-        return 0;
     }
     fFrameSize = RINGBUF.Read((uint8_t *)fTo, fMaxSize);
-
-    // spdlog::info("fFrameSize {}", fFrameSize);
 
     fNumTruncatedBytes = 0;
     return fFrameSize;
@@ -171,7 +176,7 @@ int32_t V4l2H264hData::getData(void *fTo, unsigned fMaxSize, unsigned &fFrameSiz
 
 void V4l2H264hData::StartCap()
 {
-    if(!b_running_) {
+    if (!b_running_) {
         MY_EPOLL.EpollAdd(video_format_->fd, std::bind(&V4l2H264hData::RecordAndEncode, this));
     }
     b_running_ = true;
@@ -180,26 +185,27 @@ void V4l2H264hData::StartCap()
 
 void V4l2H264hData::StopCap()
 {
-    if(b_running_) {
+    if (b_running_) {
         MY_EPOLL.EpollDel(video_format_->fd);
     }
     b_running_ = false;
     spdlog::info("V4l2H264hData StopCap");
 }
 
-inline bool FileExists(const std::string& name) {
-  struct stat buffer;   
-  return (stat (name.c_str(), &buffer) == 0); 
+inline bool FileExists(const std::string &name)
+{
+    struct stat buffer;
+    return (stat(name.c_str(), &buffer) == 0);
 }
 
 void V4l2H264hData::InitFile(bool yes)
 {
-    if(!yes) {
+    if (!yes) {
         return;
     }
 
     std::string h264_file_name = getCurrentTime8() + ".h264";
-    if(FileExists(h264_file_name)) {
+    if (FileExists(h264_file_name)) {
         remove(h264_file_name.c_str());
     }
     h264_fp_ = fopen(h264_file_name.c_str(), "wa+");
@@ -207,7 +213,9 @@ void V4l2H264hData::InitFile(bool yes)
 
 void V4l2H264hData::CloseFile()
 {
-    fclose(h264_fp_);
+    if (h264_fp_) {
+        fclose(h264_fp_);
+    }
 }
 
 bool V4l2H264hData::PauseCap(bool pause)
@@ -216,7 +224,8 @@ bool V4l2H264hData::PauseCap(bool pause)
     return s_pause_;
 }
 
-std::string V4l2H264hData::getCurrentTime8() {
+std::string V4l2H264hData::getCurrentTime8()
+{
     std::time_t result = std::time(nullptr) + 8 * 3600;
     auto sec           = std::chrono::seconds(result);
     std::chrono::time_point<std::chrono::system_clock> now(sec);
@@ -231,7 +240,8 @@ std::string V4l2H264hData::getCurrentTime8() {
     return str;
 }
 
-uint64_t V4l2H264hData::DirSize(const char *dir) {
+uint64_t V4l2H264hData::DirSize(const char *dir)
+{
 #ifndef _WIN32
     DIR *dp;
     struct dirent *entry;
@@ -239,7 +249,7 @@ uint64_t V4l2H264hData::DirSize(const char *dir) {
     long long int totalSize = 0;
     if ((dp = opendir(dir)) == NULL) {
         fprintf(stderr, "Cannot open dir: %s\n", dir);
-        return 0;   //可能是个文件，或者目录不存在
+        return 0; //可能是个文件，或者目录不存在
     }
 
     //先加上自身目录的大小
@@ -269,21 +279,22 @@ uint64_t V4l2H264hData::DirSize(const char *dir) {
 #endif
 }
 
-bool V4l2H264hData::RmDirFiles(const std::string &path) {
+bool V4l2H264hData::RmDirFiles(const std::string &path)
+{
 #ifndef _WIN32
     std::string strPath = path;
     if (strPath.at(strPath.length() - 1) != '\\' || strPath.at(strPath.length() - 1) != '/') {
         strPath.append("/");
     }
 
-    DIR *directory = opendir(strPath.c_str());   //打开这个目录
+    DIR *directory = opendir(strPath.c_str()); //打开这个目录
     if (directory != NULL) {
         for (struct dirent *dt = readdir(directory); dt != nullptr;
-             dt                = readdir(directory)) {   //逐个读取目录中的文件到dt
+             dt                = readdir(directory)) { //逐个读取目录中的文件到dt
             //系统有个系统文件，名为“..”和“.”,对它不做处理
-            if (strcmp(dt->d_name, "..") != 0 && strcmp(dt->d_name, ".") != 0) {   //判断是否为系统隐藏文件
-                struct stat st;                                                    //文件的信息
-                std::string fileName;                                              //文件夹中的文件名
+            if (strcmp(dt->d_name, "..") != 0 && strcmp(dt->d_name, ".") != 0) { //判断是否为系统隐藏文件
+                struct stat st;                                                  //文件的信息
+                std::string fileName;                                            //文件夹中的文件名
                 fileName = strPath + std::string(dt->d_name);
                 stat(fileName.c_str(), &st);
                 if (!S_ISDIR(st.st_mode)) {
@@ -302,38 +313,38 @@ bool V4l2H264hData::RmDirFiles(const std::string &path) {
 std::vector<std::string> V4l2H264hData::GetFilesFromPath(std::string path)
 {
     std::vector<std::string> files;
-	// check the parameter !
-	if( path.empty() ) {
-		return files;
-	}
-	// check if dir_name is a valid dir
-	struct stat s;
-	lstat( path.c_str(), &s );
-	if( ! S_ISDIR( s.st_mode ) ) {
-		return files;
-	}
+    // check the parameter !
+    if (path.empty()) {
+        return files;
+    }
+    // check if dir_name is a valid dir
+    struct stat s;
+    lstat(path.c_str(), &s);
+    if (!S_ISDIR(s.st_mode)) {
+        return files;
+    }
 
-	struct dirent * filename;    // return value for readdir()
-	DIR * dir;                   // return value for opendir()
-	dir = opendir( path.c_str() );
-	if( NULL == dir ) {
-		return files;
-	}
+    struct dirent *filename; // return value for readdir()
+    DIR *dir;                // return value for opendir()
+    dir = opendir(path.c_str());
+    if (NULL == dir) {
+        return files;
+    }
 
-	/* read all the files in the dir ~ */
-	while( ( filename = readdir(dir) ) != NULL ) {
-		// get rid of "." and ".."
-		if( strcmp( filename->d_name , "." ) == 0 ||
-			strcmp( filename->d_name , "..") == 0 ) {
-			continue;
+    /* read all the files in the dir ~ */
+    while ((filename = readdir(dir)) != NULL) {
+        // get rid of "." and ".."
+        if (strcmp(filename->d_name, ".") == 0 ||
+            strcmp(filename->d_name, "..") == 0) {
+            continue;
         }
         std::string full_path = path + filename->d_name;
         struct stat s;
-        lstat( full_path.c_str(), &s );
-        if( S_ISDIR( s.st_mode ) ) {
+        lstat(full_path.c_str(), &s);
+        if (S_ISDIR(s.st_mode)) {
             continue;
         }
         files.push_back(full_path);
-	}
-	return files;
+    }
+    return files;
 }

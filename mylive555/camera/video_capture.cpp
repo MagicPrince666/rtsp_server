@@ -4,7 +4,6 @@
 #include <errno.h>
 #include <fcntl.h> /* low-level i/o */
 #include <linux/videodev2.h>
-#include <malloc.h>
 #include <new>
 #include <stdio.h>
 #include <stdlib.h>
@@ -60,13 +59,13 @@ bool V4l2VideoCapture::OpenCamera()
     }
 
     if (!S_ISCHR(st.st_mode)) {
-        spdlog::error("{} is no device", v4l2_device_.c_str());
+        spdlog::error("{} is no device", v4l2_device_);
         exit(EXIT_FAILURE);
     }
 
     camera_.fd = open(v4l2_device_.c_str(), O_RDWR, 0); //  | O_NONBLOCK
 
-    if (-1 == camera_.fd) {
+    if (camera_.fd <= 0) {
         spdlog::error("Cannot open '{}': {}, {}", v4l2_device_, errno, strerror(errno));
         exit(EXIT_FAILURE);
     }
@@ -76,6 +75,11 @@ bool V4l2VideoCapture::OpenCamera()
 
 bool V4l2VideoCapture::CloseCamera()
 {
+    if(camera_.fd <= 0) {
+        spdlog::error("{} fd = {}", __FUNCTION__, camera_.fd);
+        return false;
+    }
+    spdlog::info("{} fd = {}", __FUNCTION__, camera_.fd);
     if (-1 == close(camera_.fd)) {
         return false;
     }
@@ -151,6 +155,7 @@ bool V4l2VideoCapture::StopPreviewing()
     if (-1 == xioctl(camera_.fd, VIDIOC_STREAMOFF, &type)) {
         ErrnoExit("VIDIOC_STREAMOFF");
     }
+    spdlog::info("{} VIDIOC_STREAMOFF", __FUNCTION__);
     return true;
 }
 
@@ -160,9 +165,11 @@ bool V4l2VideoCapture::UninitCamera()
         if (-1 == munmap(camera_.buffers[i].start, camera_.buffers[i].length)) {
             ErrnoExit("munmap");
         }
+        camera_.buffers[i].start = nullptr;
     }
 
     delete[] camera_.buffers;
+    spdlog::info("{} munmap", __FUNCTION__);
     return true;
 }
 
@@ -234,6 +241,10 @@ struct Camera *V4l2VideoCapture::GetFormat()
 
 bool V4l2VideoCapture::InitCamera()
 {
+    if(camera_.fd <= 0) {
+        spdlog::error("Device = {} fd = {} not init", v4l2_device_, camera_.fd);
+        return false;
+    }
     struct v4l2_format *fmt = &(camera_.v4l2_fmt);
 
     CLEAR(*fmt);
