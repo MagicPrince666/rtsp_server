@@ -8,9 +8,8 @@
  */
 #pragma once
 
-#define DbgParam 0x1f
-
-#define TestAp_Printf(flag, msg...) ((DbgParam & flag)?printf(msg):flag)
+int Dbg_Param = 0x1f;
+#define TestAp_Printf(flag, msg...) ((Dbg_Param & flag)?printf(msg):flag)
 
 #define TESTAP_DBG_USAGE	(1 << 0)
 #define TESTAP_DBG_ERR		(1 << 1)

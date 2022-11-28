@@ -10,7 +10,6 @@
 #pragma once
 
 #include "h264_xu_ctrls.h"
-#include "v4l2uvc.h"
 #include <iostream>
 #include <thread>
 
@@ -116,17 +115,32 @@ private:
      */
     void VideoCapThread();
 
+    /**
+     * @brief 格式化时间
+     * @return std::string 
+     */
+    std::string getCurrentTime8();
+
 private:
     struct buffer {
         void *start;
         size_t length;
     };
-    struct buffer *buffers_;
+    struct vdIn {
+        int32_t fd;
+        struct v4l2_capability cap;
+        struct v4l2_format fmt;
+        struct v4l2_buffer buf;
+        uint32_t width = 1280;
+        uint32_t height = 720;
+        uint32_t fps = 30;
+        struct buffer *buffers;
+        uint32_t n_buffers = 0;
+    };
+
     struct vdIn *video_;
     H264XuCtrls *h264_xu_ctrls_;
-
     bool capturing_;
-    uint32_t n_buffers_;
     std::string v4l2_device_;
     uint32_t video_width_;
     uint32_t video_height_;

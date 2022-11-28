@@ -127,13 +127,7 @@ void H264FramedLiveSource::doUpdateDataNotify()
 void H264FramedLiveSource::GetFrameData()
 {
 #if SOFT_H264 == 1
-    if (RINGBUF.Empty()) {
-        fFrameSize         = 0;
-        fNumTruncatedBytes = 0;
-    } else {
-        fFrameSize = RINGBUF.Read((uint8_t *)fTo, fMaxSize);
-        fNumTruncatedBytes = 0;
-    }
+    unsigned len = g_softh264->getData(fTo, fMaxSize, fFrameSize, fNumTruncatedBytes);
 	printf("GetFrameData size:%d\n", fFrameSize);
 #elif SOFT_H264 == 0
     unsigned len = g_h264_uvc_cap->getData(fTo, fMaxSize, fFrameSize, fNumTruncatedBytes);

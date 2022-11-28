@@ -30,6 +30,9 @@
 #include <time.h>
 #include <unistd.h>
 
+#include <sstream>
+#include <iomanip>
+
 #include "H264_UVC_Cap.h"
 #include "epoll.h"
 #include "ringbuffer.h"
@@ -45,8 +48,6 @@ H264UvcCap::H264UvcCap(std::string dev, uint32_t width, uint32_t height)
       video_height_(height)
 {
     capturing_     = false;
-    buffers_       = nullptr;
-    n_buffers_     = 0;
     rec_fp1_       = nullptr;
     h264_xu_ctrls_ = nullptr;
     video_         = nullptr;
@@ -99,8 +100,8 @@ bool H264UvcCap::CreateFile(bool yes)
     if (!yes) { // 不创建文件
         return false;
     }
-    time_t tt        = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    std::string file = std::to_string(tt) + ".h264";
+
+    std::string file = getCurrentTime8() + ".h264";
     rec_fp1_         = fopen(file.c_str(), "wa+");
     if (rec_fp1_) {
         return true;
@@ -158,34 +159,34 @@ int32_t H264UvcCap::InitMmap(void)
         return -1;
     }
 
-    buffers_ = new (std::nothrow) buffer[req.count];
+    video_->buffers = new (std::nothrow) buffer[req.count];
 
-    if (!buffers_) {
+    if (!video_->buffers) {
         spdlog::error("Out of memory");
         return -1;
     }
 
-    for (n_buffers_ = 0; n_buffers_ < req.count; ++n_buffers_) {
+    for (video_->n_buffers = 0; video_->n_buffers < req.count; ++video_->n_buffers) {
         struct v4l2_buffer buf;
         CLEAR(buf);
 
         buf.type   = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         buf.memory = V4L2_MEMORY_MMAP;
-        buf.index  = n_buffers_;
+        buf.index  = video_->n_buffers;
 
         if (-1 == xioctl(video_->fd, VIDIOC_QUERYBUF, &buf)) {
             return errnoexit("VIDIOC_QUERYBUF");
         }
 
-        buffers_[n_buffers_].length = buf.length;
-        buffers_[n_buffers_].start =
+        video_->buffers[video_->n_buffers].length = buf.length;
+        video_->buffers[video_->n_buffers].start =
             mmap(NULL,
                  buf.length,
                  PROT_READ | PROT_WRITE,
                  MAP_SHARED,
                  video_->fd, buf.m.offset);
 
-        if (MAP_FAILED == buffers_[n_buffers_].start) {
+        if (MAP_FAILED == video_->buffers[video_->n_buffers].start) {
             return errnoexit("mmap");
         }
     }
@@ -195,19 +196,17 @@ int32_t H264UvcCap::InitMmap(void)
 
 bool H264UvcCap::UninitMmap()
 {
-    if (!buffers_) {
+    if (!video_->buffers) {
         return false;
     }
 
-    for (uint32_t i = 0; i < n_buffers_; ++i) {
-        if (-1 == munmap(buffers_[i].start, buffers_[i].length)) {
+    for (uint32_t i = 0; i < video_->n_buffers; ++i) {
+        if (-1 == munmap(video_->buffers[i].start, video_->buffers[i].length)) {
             errnoexit("munmap");
         }
-        buffers_[i].start = nullptr;
+        video_->buffers[i].start = nullptr;
     }
 
-    delete[] buffers_;
-    buffers_ = nullptr;
     return true;
 }
 
@@ -238,6 +237,8 @@ int32_t H264UvcCap::InitDevice(int32_t width, int32_t height, int32_t format)
         spdlog::error("{} does not support streaming i/o", v4l2_device_);
         return -1;
     }
+
+    video_->cap = cap;
 
     CLEAR(cropcap);
     cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -278,6 +279,8 @@ int32_t H264UvcCap::InitDevice(int32_t width, int32_t height, int32_t format)
         fmt.fmt.pix.sizeimage = min;
     }
 
+    video_->fmt = fmt;
+
     struct v4l2_streamparm parm;
     memset(&parm, 0, sizeof parm);
     parm.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -294,7 +297,7 @@ int32_t H264UvcCap::StartPreviewing()
     spdlog::info("Start Previewing");
     enum v4l2_buf_type type;
 
-    for (uint32_t i = 0; i < n_buffers_; ++i) {
+    for (uint32_t i = 0; i < video_->n_buffers; ++i) {
         struct v4l2_buffer buf;
         CLEAR(buf);
 
@@ -374,6 +377,7 @@ bool H264UvcCap::Init(void)
     cat_h264_thread_ = std::thread([](H264UvcCap *p_this) { p_this->VideoCapThread(); }, this);
 
     spdlog::info("-----Init H264 Camera {}-----", v4l2_device_);
+
     return true;
 }
 
@@ -392,12 +396,12 @@ int64_t H264UvcCap::CapVideo()
     }
 
     if (rec_fp1_) {
-        fwrite(buffers_[buf.index].start, buf.bytesused, 1, rec_fp1_);
+        fwrite(video_->buffers[buf.index].start, buf.bytesused, 1, rec_fp1_);
     }
 
     // spdlog::info("Get buffer size = {}", buf.bytesused);
 
-    RINGBUF.Write((uint8_t *)buffers_[buf.index].start, buf.bytesused);
+    RINGBUF.Write((uint8_t *)video_->buffers[buf.index].start, buf.bytesused);
 
     ret = ioctl(video_->fd, VIDIOC_QBUF, &buf);
 
@@ -479,11 +483,28 @@ void H264UvcCap::StopCap()
 
 void H264UvcCap::VideoCapThread()
 {
+    spdlog::info("{} start h264 captrue", __FUNCTION__);
     StartCap();
-    while (1) {
+    while (true) {
         if (!capturing_) {
             break;
         }
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
+}
+
+std::string H264UvcCap::getCurrentTime8()
+{
+    std::time_t result = std::time(nullptr) + 8 * 3600;
+    auto sec           = std::chrono::seconds(result);
+    std::chrono::time_point<std::chrono::system_clock> now(sec);
+    auto timet     = std::chrono::system_clock::to_time_t(now);
+    auto localTime = *std::gmtime(&timet);
+
+    std::stringstream ss;
+    std::string str;
+    ss << std::put_time(&localTime, "%Y_%m_%d_%H_%M_%S");
+    ss >> str;
+
+    return str;
 }

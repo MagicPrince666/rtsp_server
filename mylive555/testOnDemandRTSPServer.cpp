@@ -149,6 +149,10 @@ int main(int argc, char **argv)
     // "ServerMediaSession" object, plus one or more
     // "ServerMediaSubsession" objects for each audio/video substream.
 
+    std::thread video_thread_loop(video_cat_thread_loop);
+    video_thread_loop.detach();
+    *env << "\n(Create video_cat_thread_loop)\n";
+
     // A H.264 video elementary stream:
     {
         char const *streamName = "live";
@@ -164,10 +168,6 @@ int main(int argc, char **argv)
 
         // 修改为自己实现的servermedia  H264LiveVideoServerMediaSubssion
         // sms->addSubsession(H264LiveVideoServerMediaSubssion::createNew(*env, NULL));
-
-        std::thread video_thread_loop(video_cat_thread_loop);
-        video_thread_loop.detach();
-        *env << "\n(Create video_cat_thread_loop)\n";
 
         rtspServer->addServerMediaSession(sms);
 

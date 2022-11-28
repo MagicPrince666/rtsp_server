@@ -25,9 +25,6 @@ struct Camera {
     int32_t width = 640;
     int32_t height = 480;
     int32_t fps = 15;
-    int32_t display_depth;
-    int32_t image_size;
-    int32_t frame_number;
     struct v4l2_capability v4l2_cap;
     struct v4l2_cropcap v4l2_cropcap;
     struct v4l2_format v4l2_fmt;

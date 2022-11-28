@@ -51,22 +51,14 @@ public:
     void StopCap();
 
     /**
-     * @brief Set the Source object
-     * @param _p 
-     */
-    void SetSource(void* _p) {
-        s_source_ = _p;
-    }
-
-    /**
      * @brief 给live555用
      * @param fTo
      * @param fMaxSize
      * @param fFrameSize
      * @param fNumTruncatedBytes
-     * @return uint32_t
+     * @return int32_t
      */
-    uint32_t getData(void *fTo, uint32_t fMaxSize, uint32_t &fFrameSize, uint32_t &fNumTruncatedBytes);
+    int32_t getData(void *fTo, unsigned fMaxSize, unsigned &fFrameSize, unsigned &fNumTruncatedBytes);
 
 private:
     /**
@@ -120,7 +112,6 @@ private:
 
     V4l2VideoCapture *p_capture_;
     H264Encoder *encoder_;
-    void* s_source_;
     bool b_running_;
     bool s_pause_;
 
