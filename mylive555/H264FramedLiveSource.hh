@@ -3,9 +3,9 @@
 
 #include <FramedSource.hh>
 
-#define SOFT_H264 0  //定义使用uvc H264
-// #define SOFT_H264 1 //定义使用软件压缩H264
-//#define SOFT_H264 2  //定义树莓派压缩H264
+// #define SOFT_H264 0  //定义使用uvc H264
+#define SOFT_H264 1 //定义使用软件压缩H264
+// #define SOFT_H264 2  //定义树莓派压缩H264
 
 class H264FramedLiveSource : public FramedSource
 {
