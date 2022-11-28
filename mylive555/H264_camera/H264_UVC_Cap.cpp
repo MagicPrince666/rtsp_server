@@ -374,7 +374,8 @@ bool H264UvcCap::Init(void)
 
     CreateFile(false);
 
-    cat_h264_thread_ = std::thread([](H264UvcCap *p_this) { p_this->VideoCapThread(); }, this);
+    // cat_h264_thread_ = std::thread([](H264UvcCap *p_this) { p_this->VideoCapThread(); }, this);
+    capturing_ = true;
 
     spdlog::info("-----Init H264 Camera {}-----", v4l2_device_);
 
@@ -417,8 +418,7 @@ int32_t H264UvcCap::BitRateSetting(int32_t rate)
 {
     int32_t ret = -1;
     spdlog::info("write to the setting");
-    if (!capturing_) //未有客户端接入
-    {
+    if (!capturing_) { //未有客户端接入
         if (video_->fd > 0) { //未初始化不能访问
             ret = h264_xu_ctrls_->XuInitCtrl();
         }
@@ -452,16 +452,39 @@ int32_t H264UvcCap::getData(void *fTo, unsigned fMaxSize, unsigned &fFrameSize, 
         return 0;
     }
 
-    if (RINGBUF.Empty()) {
-        fFrameSize         = 0;
-        fNumTruncatedBytes = 0;
-        return 0;
+    struct v4l2_buffer buf;
+    CLEAR(buf);
+
+    buf.type   = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    buf.memory = V4L2_MEMORY_MMAP;
+
+    int32_t ret = ioctl(video_->fd, VIDIOC_DQBUF, &buf);
+    if (ret < 0) {
+        spdlog::error("Unable to dequeue buffer!");
+        return -1;
     }
 
-    fFrameSize = RINGBUF.Read((uint8_t *)fTo, fMaxSize);
+    unsigned len = buf.bytesused;
 
-    fNumTruncatedBytes = 0;
-    return fFrameSize;
+    //拷贝视频到live555缓存
+    if (len < fMaxSize) {
+        memcpy(fTo, video_->buffers[buf.index].start, len);
+        fFrameSize         = len;
+        fNumTruncatedBytes = 0;
+    } else {
+        memcpy(fTo, video_->buffers[buf.index].start, fMaxSize);
+        fNumTruncatedBytes = len - fMaxSize;
+        fFrameSize         = fMaxSize;
+    }
+
+    ret = ioctl(video_->fd, VIDIOC_QBUF, &buf);
+
+    if (ret < 0) {
+        spdlog::error("Unable to requeue buffer");
+        return -1;
+    }
+
+    return len;
 }
 
 void H264UvcCap::StartCap()
