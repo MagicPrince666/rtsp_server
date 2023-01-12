@@ -1,4 +1,4 @@
-CPP = /home/prince/xos/output/host/bin/arm-neo-linux-gnueabihf-g++
+CXX = /Volumes/unix/openwrt/staging_dir/toolchain-aarch64_cortex-a53_gcc-11.3.0_musl/bin/aarch64-openwrt-linux-musl-g++
 
 TARGET	= RTSPServer
 
@@ -29,13 +29,10 @@ OBJS	= $(patsubst %.cpp,%.o,$(FILES))
 all:$(OBJS) $(TARGET)
 
 $(OBJS):%.o:%.cpp
-	$(CPP) $(CFLAGS) $(INC) -c -o $(OBJPATH)/$(notdir $@) $< 
+	$(CXX) $(CFLAGS) $(INC) -c -o $(OBJPATH)/$(notdir $@) $< 
 
 $(TARGET):$(OBJPATH)
-	$(CPP) -o $@ $(OBJPATH)/*.o $(LDFLAGS)
-
-#$(OBJPATH):
-#	mkdir -p $(OBJPATH)
+	$(CXX) -o $@ $(OBJPATH)/*.o $(LDFLAGS)
 
 clean:
 	-rm -f $(OBJPATH)/*.o
